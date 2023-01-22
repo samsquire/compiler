@@ -23,13 +23,10 @@ movl -8(%rbp), %eax
 movl -12(%rbp), %edi
 movl $7, %ecx
 addl    %edi, %ecx
-movl    %eax, %esi
-movl -8(%rbp), %edi
-movl $8, %eax
-addl    %edi, %eax
-movl    %eax, %esi
+movl -8(%rbp), %eax
+addl    $8, %eax
 imul    %ecx, %eax
-movl    %eax, %esi
+movl %eax, %esi
 leaq .CONSTANT5(%rip), %rax 
 movq    %rax, %rdi
 call    printf@PLT

@@ -16,6 +16,7 @@ class Ast:
         
         self.source_left = "${}".format(self.left.value)
         self.source_right = "%{}".format(self.use_register)
+        
       elif type(self.left) == Reference:
         lhs_position = self.left.source
         print("movl -{}(%rbp), %edi".format(lhs_position))
@@ -27,7 +28,7 @@ class Ast:
         print("movl ${}, %{}".format(self.right.value, self.use_register))
         self.source_right = "%{}".format(self.use_register)
       elif type(self.right) == Reference:
-        rhs_position = "%{}".format(self.right.source)
+        rhs_position = "{}".format(self.right.source)
         
         print("movl -{}(%rbp), %{}".format(rhs_position, self.use_register))
         self.source_right = "%{}".format(self.use_register)
@@ -247,7 +248,7 @@ class Mul(Ast):
       
     
     print("imul    {}, {}".format(self.source_left, self.source_right))
-    print("movl    %eax, %esi")
+    
 
   
 
@@ -284,7 +285,7 @@ class Add(Ast):
       
     
     print("addl    {}, {}".format(self.source_left, self.source_right))
-    print("movl    %eax, %esi")
+    
 
   
   def assignlocalvariables(self, method):
@@ -338,7 +339,10 @@ class Println(Ast):
     
     self.data.codegen("", method)
     if type(self.data) == LiteralNumber:
+      
       print("movl    ${}, %esi".format(self.data.value))
+    else:
+      print("movl %{}, %esi".format(self.data.use_register))
     print("leaq .{}(%rip), %rax ".format(self.constant_template.name))
     print("movq    %rax, %rdi")
       
@@ -397,7 +401,7 @@ program = Main(
     Assign("b", LiteralNumber(6)),
     
     Println("Value is %d",
-            Mul(Add(Reference("a"), LiteralNumber(7)),     Add(Reference("b"), LiteralNumber(8)))),
+            Mul(Add(Reference("a"), LiteralNumber(7)),     Add(LiteralNumber(8), Reference("b")))),
   Println("Hello world %d", LiteralNumber(10))])
 
 program.findconstant()
