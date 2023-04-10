@@ -1,0 +1,4 @@
+function hello(int number) {
+    print("hello %d", number);
+}
+hello(6);
