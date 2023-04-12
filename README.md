@@ -1,4 +1,14 @@
 # compiler
+
+This repository is where I work on compiler development.
+
+I have two compilers:
+
+* an toy amd64 Python compiler
+* the beginnings of a amd64 JIT C compiler
+
+# amd64 compiler written in Python
+
 a compiler backend for amd64 x86_64
 
 [This is barebones toy proof of implementation](https://replit.com/@Chronological/Compiler2#main.py) but my backend can compile the following AST. It has no name, it's for learning assembly and compilation development. I hope it shall be useful to you.
@@ -202,4 +212,20 @@ instruction 5 func println falls in range of t2
 eax is now free
 instruction 5 func println falls in range of Value is %d
 instruction 6 func println falls in range of Hello world %d
+```
+
+# JIT compiler written in C
+
+I am as far as the frontend. The compiler reads syntax that resembles the following and turns it into an AST.
+
+```
+function other(int number) {
+    identifier1.identifier2.printf("Number:", number);
+}
+function hello(int number, string data) {
+    other(number);
+    printf(data, number);
+}
+hello(6);
+
 ```
