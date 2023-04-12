@@ -1,4 +1,8 @@
-function hello(int number) {
-    print("hello %d", number);
+function other(int number) {
+    identifier1.identifier2.printf("Number:", number);
+}
+function hello(int number, string data) {
+    other(number);
+    printf(data, number);
 }
 hello(6);

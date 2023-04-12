@@ -31,33 +31,51 @@ int convert_to_hex(char c)
 }
 // types
 #define NUMBER 0
+#define STRING 0
 // ast nodes
 #define ASSIGNMENT 0
 #define REFERENCE 1
-#define IF 1
-#define METHOD_CALL 1
+#define IF 2
+#define METHOD_CALL 3
+#define MEMBER_ACCESS 4
+#define IDENTIFIER 5
 
 struct Parameter {
   char * name;
   char * type;
+  int namelength;
 };
 
 struct Function {
   char * name;
   struct Parameter **parameters;
-  int length;
+  int parameter_length;
+  int expression_length;
+  struct Expression **expressions;
+  struct ExpressionSource **exps; 
+  struct StatementSource * statements;
 };
 
-
-
-struct AST {
+struct Expression {
   int type;
-  int length;
-  struct AST * children;
+  struct ExpressionSource **exps;
+  struct StatementSource * statements;
+  char * stringvalue;
+  int stringlength;
+  int numbervalue;
+};
+
+struct ExpressionSource {
+  struct Expression **expressions;
+  struct Expression ***current_into;
+  int expression_length;
+};
+
+struct StatementSource {
+  int statements;
 };
 
 struct ParseResult {
-  struct AST * root;
   char *last_char;  
   int pos;
   char * program_body;
@@ -66,9 +84,48 @@ struct ParseResult {
   int start;
   struct Function **functions;
   int function_length;
+  int precedence;
+  struct ExpressionSource **exps; 
+  struct StatementSource * statements;
+  char * last_token;
 };
 
 #define BUF_SIZE 1024
+
+int dump_expressions(int count, struct ExpressionSource *exps) {
+  char * spaces = malloc(sizeof(char) * count + 1);
+  spaces[sizeof(char) * count] = '\0';
+  for (int x = 0 ; x < count ; x++) {
+    spaces[x] = ' ';
+  } 
+  int expression_length = exps->expression_length;
+  // printf("Has %d expressions", expression_length);
+  struct Expression **expressions = exps->expressions;
+  for (int x = 0 ; x < expression_length; x++) {
+    struct Expression *expression = expressions[x];  
+    // printf("%p\n", expression);
+    switch (expression->type) {
+      case IDENTIFIER:
+        printf("%sidentifier %s %d\n", spaces, expression->stringvalue, expression->numbervalue);
+        if (expression->exps[0]->expression_length > 0) {
+          dump_expressions(count + 1, expression->exps[0]);
+        }
+        break;
+      case MEMBER_ACCESS:
+        printf("%smember access %s %d\n", spaces, expression->stringvalue, expression->numbervalue);
+        if (expression->exps[0]->expression_length > 0) {
+          dump_expressions(count + 1, expression->exps[0]);
+        }
+        break;
+      case METHOD_CALL:
+        printf("%smethod call %s %d\n", spaces, expression->stringvalue, expression->numbervalue);
+        if (expression->exps[0]->expression_length > 0) {
+          dump_expressions(count + 1, expression->exps[0]);
+        }
+        break;
+    }
+  }
+}
 
 char * charget(struct ParseResult *parse_result) {
   parse_result->start = 0;
@@ -85,7 +142,7 @@ char * charget(struct ParseResult *parse_result) {
   return last_char; 
 }
 
-char * gettok(struct ParseResult *parse_result, char * caller) {
+char * _gettok(struct ParseResult *parse_result, char * caller) {
    while (parse_result->start || (parse_result->end == 0 && (strcmp(parse_result->last_char, " ") == 0 || strcmp(parse_result->last_char, "\n") == 0))) {
       printf("%s Skipping whitespace\n", caller);
       free(parse_result->last_char);
@@ -116,13 +173,19 @@ char * gettok(struct ParseResult *parse_result, char * caller) {
   if (strcmp(parse_result->last_char, ")") == 0) {
       free(parse_result->last_char);
       parse_result->last_char = charget(parse_result);
-      printf("%s CLOSE TAG", caller);
+      printf("%s CLOSE TAG\n", caller);
       return "close";
+  }
+  if (strcmp(parse_result->last_char, ".") == 0) {
+      free(parse_result->last_char);
+      parse_result->last_char = charget(parse_result);
+      printf("%s CLOSE TAG", caller);
+      return "member";
   }
   if (strcmp(parse_result->last_char, ";") == 0) {
       free(parse_result->last_char);
       parse_result->last_char = charget(parse_result);
-      printf("%s CLOSE expression", caller);
+      printf("%s CLOSE expression\n", caller);
       return "endstatement";
   }
 
@@ -138,7 +201,7 @@ char * gettok(struct ParseResult *parse_result, char * caller) {
   size_t subject_length = 1;
   // pcre2_code *pcre2_compile(PCRE2_SPTR pattern, PCRE2_SIZE length, uint32_t options, int *errorcode, PCRE2_SIZE *erroroffset, pcre2_compile_context *ccontext);
 
-  char * regex = "^[a-zA-Z0-9-_.]+$";
+  char * regex = "^[a-zA-Z0-9-_]+$";
   pattern = (PCRE2_SPTR)regex;
   subject = (PCRE2_SPTR)parse_result->last_char;
 
@@ -188,14 +251,14 @@ char * gettok(struct ParseResult *parse_result, char * caller) {
         match_data,           /* block for storing the result */
         NULL)) > 0) {          /* use default match context */  
       ovector = pcre2_get_ovector_pointer(match_data);
-      printf("\n%sMatch succeeded at offset %d\n", caller, (int)ovector[0]);   
+      // printf("\n%s Match succeeded at offset %d\n", caller, (int)ovector[0]);   
       for (i = 0; i < rc; i++) {
         PCRE2_SPTR substring_start = subject + ovector[2*i];
         size_t substring_length = ovector[2*i+1] - ovector[2*i];
-        printf("%2d: [%.*s]\n", i, (int)substring_length, (char *)substring_start);
+        // printf("%2d: [%.*s]\n", i, (int)substring_length, (char *)substring_start);
       }
       identifier[count++] = parse_result->last_char[0];
-      printf("%s [%s] Matched pattern for identifier [%s] %s\n", regex, parse_result->last_char, identifier, subject); 
+      // printf("%s [%s] Matched pattern for identifier [%s] %s\n", regex, parse_result->last_char, identifier, subject); 
       free(parse_result->last_char); 
       parse_result->last_char = charget(parse_result);
       subject = (PCRE2_SPTR)parse_result->last_char;
@@ -264,14 +327,14 @@ char * gettok(struct ParseResult *parse_result, char * caller) {
           match_data,           /* block for storing the result */
           NULL)) > 0) {          /* use default match context */  
         ovector = pcre2_get_ovector_pointer(match_data);
-        printf("\n%s Match succeeded at offset %d\n", caller, (int)ovector[0]);   
+        // printf("\n%s Match succeeded at offset %d\n", caller, (int)ovector[0]);   
         for (i = 0; i < rc; i++) {
           PCRE2_SPTR substring_start = subject + ovector[2*i];
           size_t substring_length = ovector[2*i+1] - ovector[2*i];
-          printf("%2d: [%.*s]\n", i, (int)substring_length, (char *)substring_start);
+          // printf("%2d: [%.*s]\n", i, (int)substring_length, (char *)substring_start);
         }
         identifier[count++] = parse_result->last_char[0];
-        printf("quote %s %s [%s] Matched pattern for identifier [%s] %s\n", caller, pattern, parse_result->last_char, identifier, subject); 
+        // printf("quote %s %s [%s] Matched pattern for identifier [%s] %s\n", caller, pattern, parse_result->last_char, identifier, subject); 
         free(parse_result->last_char); 
         parse_result->last_char = charget(parse_result);
         subject = (PCRE2_SPTR)parse_result->last_char;
@@ -302,8 +365,13 @@ char * gettok(struct ParseResult *parse_result, char * caller) {
       return identifier.lower() 
   */
 
-  printf("Unknown char: [%s]\n", parse_result->last_char);
+  printf("Unknown char: [%s] %s\n", parse_result->last_char, parse_result->program_body);
   return "unknown";
+}
+char * gettok(struct ParseResult *parse_result, char * caller) {
+  char * token = _gettok(parse_result, caller);    
+  parse_result->last_token = token;
+  return token;
 }
 
 unsigned long
@@ -318,32 +386,156 @@ hash(unsigned char *str)
     return hash;
 }
 
-struct Expression ** parse_expressions(struct ParseResult *parse_result) {
+struct ExpressionSource ** parse_expressions(
+  char * caller,
+  struct StatementSource *statementsource,
+  struct ExpressionSource **statements,
+  struct ExpressionSource *head,
+  struct ParseResult *parse_result,
+  int usetokenstop,
+  char * tokenstop) {
   char * token;
-  while ((token = gettok(parse_result, "functionbodyitem")) && parse_result->end == 0 && strcmp(token, "curlyclose") != 0) {
-    switch (hash(token)) {
-      default:  
-       // identifier 
-       printf("Is an identifier %s", token);
+   
+   
+  while ((token = gettok(parse_result, "functionbodyitem")) && parse_result->end == 0 && strcmp(token, "curlyclose") != 0 && (usetokenstop == 0 || (usetokenstop == 1 && strcmp(token, tokenstop) != 0))) {
+    unsigned long hashv = hash(token);
+    printf("Hash for token %s is %ld\n", token, hashv);
+    switch (hashv) {
+      case 6953778704349: // case . case member
+        printf("Is an member access operator\n");
+
+        struct ExpressionSource **newstatements2 = calloc(100, sizeof(struct ExpressionSource)); 
+        struct ExpressionSource *newexps = malloc(sizeof(struct ExpressionSource)); 
+        struct StatementSource *newstatementsource3 = malloc(sizeof(struct StatementSource)); 
+        newstatementsource3->statements = 1;
+      
+        newexps->expressions = statements[statementsource->statements - 1]->expressions;
+        newexps->expression_length = statements[statementsource->statements - 1]->expression_length;
+        newexps->current_into = statements[statementsource->statements - 1]->current_into;
+
+        struct Expression * member = malloc(sizeof(struct Expression));
+        member->type = MEMBER_ACCESS;
+        member->exps = newstatements2;
+        member->statements = newstatementsource3;
+        newstatements2[0] = newexps;
+
+         
+        struct Expression **newroot = calloc(100, sizeof(struct Expression*));
+        statements[statementsource->statements - 1]->expressions = newroot; 
+        statements[statementsource->statements - 1]->expression_length = 0;
+        *statements[statementsource->statements - 1]->current_into = newroot;
+        statements[statementsource->statements - 1]->expressions[statements[statementsource->statements - 1]->expression_length++] = member;
+        
+      break; 
+      case 210708961883: // case ) case close  parameterlistend
+        printf("%s Close bracket\n", caller);
+        break;
+      case -3372849529167478127: // case ; case semicolon
+        printf("%s End of statement\n", caller);
+        struct ExpressionSource * newline = malloc(sizeof(struct ExpressionSource));
+        struct Expression ** new_expressions = calloc(100, sizeof(struct ExpressionSource));
+        statementsource->statements++;
+        statements[statementsource->statements - 1] = newline;
+        newline->expressions = new_expressions;
+        break;
+      case 6385555319: // case ( case open
+        printf("open bracket\n");
+        
+        printf("OWNER %d\n", statements[statementsource->statements - 1]->expression_length - 1);
+        dump_expressions(1, statements[statementsource->statements - 1]);
+        struct Expression ** owner = statements[statementsource->statements - 1]->expressions;
+        int owner_size = statements[statementsource->statements - 1]->expression_length;
+        struct Expression *** owner_into = statements[statementsource->statements - 1]->current_into;
+        
+        struct ExpressionSource ** _newstatements = calloc(100, sizeof(struct ExpressionSource*)); 
+        struct Expression ** empty = calloc(100, sizeof(struct Expression*)); 
+        struct ExpressionSource * expression_exps = malloc(sizeof(struct ExpressionSource)); 
+        struct StatementSource * newstatementsource2 = malloc(sizeof(struct StatementSource));
+        // struct Expression ** expressions = calloc(100, sizeof(struct Expression*)); 
+        struct Expression * method_call = malloc(sizeof(struct Expression));
+        statements[statementsource->statements - 1]->expressions = empty;
+        empty[0] = method_call;
+        statements[statementsource->statements - 1]->expression_length = 1;
+        method_call->type = METHOD_CALL;
+        // method_call->stringvalue = token;
+        method_call->exps = _newstatements;
+        method_call->statements = newstatementsource2;
+        newstatementsource2->statements = 1;
+        _newstatements[0] = expression_exps;
+        method_call->exps[newstatementsource2->statements - 1]->expression_length = 0;
+        method_call->exps[newstatementsource2->statements - 1]->expressions = owner;
+        expression_exps->current_into = owner_into;
+        method_call->exps[newstatementsource2->statements - 1]->expression_length = owner_size;
+
+        printf("expression location %d %p\n", method_call->exps[newstatementsource2->statements - 1]->expression_length, method_call->exps[newstatementsource2->statements - 1]->expressions[method_call->exps[newstatementsource2->statements - 1]->expression_length - 1]);
+        dump_expressions(1, statements[statementsource->statements - 1]);
+        
+        char * tokenstop = "close";
+        
+        while (parse_result->end == 0 && strcmp(parse_result->last_token, "close") != 0) {
+          printf("Parsing subexpression\n");
+          char * before = malloc(sizeof(char) * 2);
+          parse_expressions("exprparse", newstatementsource2, _newstatements, head, parse_result, 1, tokenstop);
+
+          memcpy(before, parse_result->last_char, 2); 
+          int pos = parse_result->pos;
+          if (strcmp(parse_result->last_token, "close") != 0 && strcmp(gettok(parse_result, "commacheck"), "comma") != 0) {
+            
+            free(parse_result->last_char);
+            parse_result->last_char = before;
+            parse_result->pos = pos;
+          } else {
+            if (strcmp(parse_result->last_token, "comma") == 0) {
+              parse_result->pos = parse_result->pos + 1;
+            }
+            // parse_result->pos = parse_result->pos + 1;
+          }
+        }
+        break; 
+      case 210709067314: // case , case comma
+      break;
+      default:  // identifier 
+       printf("%s parseexpression Is an identifier %s\n", caller, token);
+       struct Expression * identifier = malloc(sizeof(struct Expression));
+       identifier->type = IDENTIFIER;
+       identifier->stringvalue = token;
+
+       struct ExpressionSource **newstatements = calloc(100, sizeof(struct ExpressionSource*));
+       struct ExpressionSource *identifierexps = malloc(sizeof(struct ExpressionSource));
+       struct StatementSource *newstatementsource = malloc(sizeof(struct StatementSource));
+       struct Expression **identifierexpressions = calloc(100, sizeof(struct Expression*));
+       identifier->exps = newstatements;
+       identifier->statements = newstatementsource;
+       newstatementsource->statements = 1;
+       newstatements[0] = identifierexps;
+       printf("identifier expression %p\n", identifier->exps[newstatementsource->statements - 1]);
+       identifier->exps[newstatementsource->statements - 1]->expression_length = 0;
+       identifier->exps[newstatementsource->statements - 1]->expressions = identifierexpressions;
+       printf("statements %p\n", statements[statementsource->statements - 1]);
+       int new_position = statements[statementsource->statements - 1]->expression_length;
+       statements[statementsource->statements - 1]->expressions[new_position] = identifier;
+       statements[statementsource->statements - 1]->expression_length++;
+       printf("expression location %d %p\n", new_position, statements[statementsource->statements - 1]->expressions[new_position]);
+       dump_expressions(1, statements[statementsource->statements - 1]);
+       break;
     } 
   }
+  return statements;
 }
 
-struct ParseResult * continue_parse(struct ParseResult *parse_result) {
+struct ParseResult * continue_parse(
+  char * caller,
+  struct StatementSource *statementsource,
+  struct ExpressionSource **statements,
+  struct ExpressionSource *head,
+  struct ParseResult *parse_result) {
+
+
   struct Expression **expressions;
   printf("Getting token\n");
   char * token = gettok(parse_result, "parsebegin");
   printf("%s", token); 
 
-  char * keywords[] = {"function", "if", "return", "(", ")"};
-
-  for (int x = 0 ; x < 4; x++) {
-    printf("%s %ld\n", keywords[x], hash(keywords[x]));
-  }
-
-  struct Function **functions = calloc(100, sizeof(struct Function*));
-  parse_result->functions = functions;
-  parse_result->function_length = 0;
 
   switch (hash(token)) {
     case 7572387384277067: // case function
@@ -353,7 +545,6 @@ struct ParseResult * continue_parse(struct ParseResult *parse_result) {
       parse_result->function_length++;
       struct Parameter **parameters = calloc(10, sizeof(struct Parameter*));
       function->parameters = parameters;
-
       function->name = function_name;
       printf("Is a function %s\n", function_name);
       char * open = gettok(parse_result, "expectfuncopen");
@@ -374,10 +565,10 @@ struct ParseResult * continue_parse(struct ParseResult *parse_result) {
         printf("type is %s name is %s\n", type, name);
         char * before = malloc(sizeof(char) * 2);
 
-        struct Parameter *parameter = malloc(sizeof(struct Parameter*));
+        struct Parameter *parameter = malloc(sizeof(struct Parameter));
         parameter->type = type;
         parameter->name = name;
-        parameters[function->length++] = parameter;
+        parameters[function->parameter_length++] = parameter;
 
         memcpy(before, parse_result->last_char, 2); 
         int pos = parse_result->pos;
@@ -391,23 +582,68 @@ struct ParseResult * continue_parse(struct ParseResult *parse_result) {
       if (strcmp(curlyopen, "curlyopen") != 0) {
         printf("Error: expected curlyopen after function parameters");
       }
-      expressions = parse_expressions(parse_result);
-      continue_parse(parse_result);
+
+      struct Expression **newinto = calloc(100, sizeof(struct Expression*));
+      struct ExpressionSource ** _newstatements = calloc(100, sizeof(struct ExpressionSource*));
+      struct ExpressionSource *newexps= calloc(1, sizeof(struct ExpressionSource));
+      struct StatementSource *newstatementsource = calloc(1, sizeof(struct StatementSource));
+      function->exps = _newstatements;
+      _newstatements[0] = newexps;
+      function->statements = newstatementsource;
+      newstatementsource->statements = 1;
+      newexps->current_into = &newinto;
+      newexps->expressions = newinto;
+      newexps->expression_length = 0;
+      
+      printf("function parse INTO %p", newinto);
+      struct ExpressionSource **returnedexps = parse_expressions("functionparse", newstatementsource, _newstatements, head, parse_result, 0, NULL);
+      
+      return continue_parse("functionparse", statementsource, statements, head, parse_result);
       break;
-    case 177613:
+    case 177613: // case (
       printf("is a parameter list"); 
       break;
-    default:
-      printf("Is an identifier %s", token);
-      struct Expression **expressions = parse_expressions(parse_result);
+    case 6953778704349: // case .
+      printf("is a member access");
+       
+      break;
+    default: // case identifier
+      printf("%s Funcbody Is an identifier %s\n", caller, token);
+      struct Expression * identifier = malloc(sizeof(struct Expression));
+      struct ExpressionSource ** newstatements = malloc(sizeof(struct ExpressionSource*));
+      struct ExpressionSource * identifierexps = malloc(sizeof(struct ExpressionSource));
+      struct StatementSource * _newstatementsource = malloc(sizeof(struct StatementSource));
+      struct Expression ** expression = calloc(100, sizeof(struct Expression));
+      _newstatementsource->statements = 1;
+      identifier->type = IDENTIFIER;
+      identifier->stringvalue = token;
+      identifier->exps = newstatements;
+      newstatements[0] = identifierexps;
+      identifier->exps[_newstatementsource->statements - 1]->expression_length = 0;
+      identifier->exps[_newstatementsource->statements - 1]->expressions = expression;
+      identifier->statements = _newstatementsource;
+      int new_position = statements[statementsource->statements - 1]->expression_length++;
+      printf("%s New position is %d\n", caller, new_position);
+      printf("identifier INTO %p\n", statements[statementsource->statements - 1]->expressions);
+      statements[statementsource->statements - 1]->expressions[new_position] = identifier;
+      int expressions_count = 0;
+      struct ExpressionSource **expressions = parse_expressions("identifier", _newstatementsource, statements, head, parse_result, 0, NULL);
       break;
   }
   
   return parse_result; 
 }
+
+// rootparse
 struct ParseResult* parse(int length, char * program_body) {
   struct ParseResult * parse_result = malloc(sizeof(struct ParseResult));
+  struct ExpressionSource ** statements = malloc(sizeof(struct ExpressionSource*));
+  struct ExpressionSource * exps = malloc(sizeof(struct ExpressionSource));
+  struct StatementSource * statementsource = malloc(sizeof(struct StatementSource));
   parse_result->pos = 0;
+  parse_result->exps = statements;
+  statements[0] = exps;
+  statementsource->statements = 1;
   parse_result->length = length;
   parse_result->program_body = program_body;
   char * last_char = malloc((sizeof(char) * 2)); 
@@ -417,11 +653,44 @@ struct ParseResult* parse(int length, char * program_body) {
   parse_result->last_char = last_char;
   parse_result->end = 0;
   parse_result->start = 1;
+  struct Expression **root = calloc(100, sizeof(struct Expression**));
+  exps->expressions = root;
+  exps->expression_length = 0;
+  exps->current_into = &root;
+  printf("FIRST INTO %p\n", root); 
+  char * keywords[] = {"member", "function", "if", "return", "open", "close", "comma"};
+  printf("HASH TABLE %ld\n", sizeof(keywords));
+  for (int x = 0 ; x < sizeof(keywords) / sizeof(keywords[0]); x++) {
+    printf("%s %ld\n", keywords[x], hash(keywords[x]));
+  }
+  printf("\n");
 
-  return continue_parse(parse_result);
+  struct Function **functions = calloc(100, sizeof(struct Function*));
+  parse_result->functions = functions;
+  parse_result->function_length = 0;
+  parse_result->statements = statementsource;
+  return continue_parse("rootparse", statementsource, statements, exps, parse_result);
 }
 
 
+int dump_function(struct Function *function) {
+  printf("##########");
+  printf("Function %s\n", function->name); 
+  for (int x = 0 ; x < function->parameter_length; x++) {
+    printf("- parameter name %s\n", function->parameters[x]->name);
+    printf("- parameter type %s\n", function->parameters[x]->type);
+  }
+  printf("Has %d statements\n", function->statements->statements);
+  for (int x = 0 ; x < function->statements->statements; x++) {
+    dump_expressions(1, function->exps[x]);
+  }
+}
+
+int dump(struct ParseResult *parse_result) {
+  for (int x = 0 ; x < parse_result->function_length; x++) {
+    dump_function(parse_result->functions[x]);     
+  } 
+}
 
 int main(int argc, char *argv[])
 {
@@ -462,6 +731,12 @@ int main(int argc, char *argv[])
     printf("Parsing code\n%s", buffer);
     // start to process your data / extract strings here...
     struct ParseResult *ast = parse(length, buffer);  
+
+    printf("Dumping AST\n");
+    for (int x = 0 ; x < ast->statements->statements; x++) {
+      dump_expressions(1, ast->exps[x]);
+    }
+    dump(ast);
   }
 
   /*for (size_t i = 0; buffer[i * 2 + 1] != '\0'; i++) {
