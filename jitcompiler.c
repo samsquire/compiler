@@ -46,6 +46,12 @@ struct Parameter {
   int namelength;
 };
 
+struct ANF {
+  struct Function **functions;
+  struct NormalForm *anf;
+  int function_length;
+};
+
 struct Function {
   char * name;
   struct Parameter **parameters;
@@ -54,6 +60,7 @@ struct Function {
   struct Expression **expressions;
   struct ExpressionSource **exps; 
   struct StatementSource * statements;
+  struct NormalForm * anf;
 };
 
 struct Expression {
@@ -90,6 +97,11 @@ struct ParseResult {
   char * last_token;
 };
 
+struct NormalForm {
+  struct Expression ** expressions;
+  int count;
+};
+
 #define BUF_SIZE 1024
 
 int dump_expressions(int count, struct ExpressionSource *exps) {
@@ -103,26 +115,22 @@ int dump_expressions(int count, struct ExpressionSource *exps) {
   struct Expression **expressions = exps->expressions;
   for (int x = 0 ; x < expression_length; x++) {
     struct Expression *expression = expressions[x];  
-    // printf("%p\n", expression);
-    switch (expression->type) {
-      case IDENTIFIER:
-        printf("%sidentifier %s %d\n", spaces, expression->stringvalue, expression->numbervalue);
-        if (expression->exps[0]->expression_length > 0) {
-          dump_expressions(count + 1, expression->exps[0]);
-        }
-        break;
-      case MEMBER_ACCESS:
-        printf("%smember access %s %d\n", spaces, expression->stringvalue, expression->numbervalue);
-        if (expression->exps[0]->expression_length > 0) {
-          dump_expressions(count + 1, expression->exps[0]);
-        }
-        break;
-      case METHOD_CALL:
-        printf("%smethod call %s %d\n", spaces, expression->stringvalue, expression->numbervalue);
-        if (expression->exps[0]->expression_length > 0) {
-          dump_expressions(count + 1, expression->exps[0]);
-        }
-        break;
+      switch (expression->type) {
+        case IDENTIFIER:
+          printf("%sidentifier %s %d\n", spaces, expression->stringvalue, expression->numbervalue);
+          break;
+        case MEMBER_ACCESS:
+          printf("%smember access %s %d\n", spaces, expression->stringvalue, expression->numbervalue);
+          break;
+        case METHOD_CALL:
+          printf("%smethod call %s %d\n", spaces, expression->stringvalue, expression->numbervalue);
+          break;
+      }
+    for (int y = 0 ; y < expression->statements->statements; y++) {
+     // printf("%d %p\n", y, expression->exps[y]);
+      if (expression->exps[y]->expression_length > 0) {
+        dump_expressions(count + 1, expression->exps[y]);
+      }
     }
   }
 }
@@ -135,7 +143,7 @@ char * charget(struct ParseResult *parse_result) {
   parse_result->last_char = last_char;
   if (parse_result->pos + 1 == parse_result->length) {
     parse_result->end = 1;
-    printf("end early");
+    printf("end early\n");
     return last_char;
   }
   parse_result->pos = parse_result->pos + 1;
@@ -153,6 +161,21 @@ char * _gettok(struct ParseResult *parse_result, char * caller) {
       free(parse_result->last_char);
       parse_result->last_char = charget(parse_result);
       return "comma";
+  }
+  if (strcmp(parse_result->last_char, "+") == 0) {
+      free(parse_result->last_char);
+      parse_result->last_char = charget(parse_result);
+      return "add";
+  }
+  if (strcmp(parse_result->last_char, "*") == 0) {
+      free(parse_result->last_char);
+      parse_result->last_char = charget(parse_result);
+      return "multiply";
+  }
+  if (strcmp(parse_result->last_char, "-") == 0) {
+      free(parse_result->last_char);
+      parse_result->last_char = charget(parse_result);
+      return "subtract";
   }
       
   if (strcmp(parse_result->last_char, "(") == 0) {
@@ -432,11 +455,15 @@ struct ExpressionSource ** parse_expressions(
         break;
       case -3372849529167478127: // case ; case semicolon
         printf("%s End of statement\n", caller);
-        struct ExpressionSource * newline = malloc(sizeof(struct ExpressionSource));
-        struct Expression ** new_expressions = calloc(100, sizeof(struct ExpressionSource));
+        struct ExpressionSource * _newline2 = malloc(sizeof(struct ExpressionSource));
+        struct ExpressionSource * _emptyline2 = malloc(sizeof(struct ExpressionSource));
+        struct ExpressionSource ** _empty4 = malloc(sizeof(struct ExpressionSource*));
+        struct Expression ** _new_expressions2 = calloc(100, sizeof(struct Expression*));
+        struct Expression * _exprs = calloc(1, sizeof(struct Expression));
         statementsource->statements++;
-        statements[statementsource->statements - 1] = newline;
-        newline->expressions = new_expressions;
+        statements[statementsource->statements - 1] = _newline2;
+        _newline2->expression_length = 0;
+        _newline2->expressions = _new_expressions2;
         break;
       case 6385555319: // case ( case open
         printf("open bracket\n");
@@ -479,20 +506,30 @@ struct ExpressionSource ** parse_expressions(
 
           memcpy(before, parse_result->last_char, 2); 
           int pos = parse_result->pos;
-          if (strcmp(parse_result->last_token, "close") != 0 && strcmp(gettok(parse_result, "commacheck"), "comma") != 0) {
+          if (strcmp(parse_result->last_token, "close") != 0 /*&& strcmp(gettok(parse_result, "commacheck"), "comma") != 0 */) {
             
             free(parse_result->last_char);
             parse_result->last_char = before;
             parse_result->pos = pos;
           } else {
-            if (strcmp(parse_result->last_token, "comma") == 0) {
+            /*if (strcmp(parse_result->last_token, "comma") == 0) {
               parse_result->pos = parse_result->pos + 1;
-            }
+            }*/
             // parse_result->pos = parse_result->pos + 1;
           }
         }
         break; 
       case 210709067314: // case , case comma
+        printf("%s Comma encountered, creating new statement\n", caller);
+        struct ExpressionSource * newline2 = malloc(sizeof(struct ExpressionSource));
+        struct ExpressionSource * emptyline2 = malloc(sizeof(struct ExpressionSource));
+        struct ExpressionSource ** empty4 = malloc(sizeof(struct ExpressionSource*));
+        struct Expression ** new_expressions = calloc(100, sizeof(struct Expression*));
+        struct Expression * exprs = calloc(1, sizeof(struct Expression));
+        statementsource->statements++;
+        statements[statementsource->statements - 1] = newline2;
+        newline2->expression_length = 0;
+        newline2->expressions = new_expressions;
       break;
       default:  // identifier 
        printf("%s parseexpression Is an identifier %s\n", caller, token);
@@ -627,7 +664,7 @@ struct ParseResult * continue_parse(
       printf("identifier INTO %p\n", statements[statementsource->statements - 1]->expressions);
       statements[statementsource->statements - 1]->expressions[new_position] = identifier;
       int expressions_count = 0;
-      struct ExpressionSource **expressions = parse_expressions("identifier", _newstatementsource, statements, head, parse_result, 0, NULL);
+      struct ExpressionSource **expressions = parse_expressions("identifier", statementsource, statements, head, parse_result, 0, NULL);
       break;
   }
   
@@ -685,11 +722,92 @@ int dump_function(struct Function *function) {
     dump_expressions(1, function->exps[x]);
   }
 }
+/*
+int descendanf(struct NormalForm * anf, struct ExpressionSource *expressions) {
+  for (int x = expressions->expression_length - 1; x >= 0 ; x--) {
+    for (int y = expressions->expressions[x]->statements->statements - 1 ; y >= 0 ; y--) {
+      descendanf(anf, expressions->expressions[x]->exps[y]);
+    }
+    anf->expressions[anf->count++] = expressions->expressions[x];
+  }
+}*/
+int descendanf(struct NormalForm * anf, struct ExpressionSource *expressions) {
+  for (int x = expressions->expression_length - 1; x >= 0  ; x--) {
+  // for (int x = 0; x < expressions->expression_length ; x++) {
+    // for (int y = 0 ; y < expressions->expressions[x]->statements->statements ; y++) {
+    for (int y = expressions->expressions[x]->statements->statements - 1 ; y >= 0 ; y--) {
+      descendanf(anf, expressions->expressions[x]->exps[y]);
+    }
+    anf->expressions[anf->count++] = expressions->expressions[x];
+  }
+}
+
+struct ANF * normalform(struct ParseResult *parse_result) {
+  struct ANF * result = malloc(sizeof(struct ANF));  
+  struct NormalForm * anf = malloc(sizeof(struct NormalForm));  
+  result->anf = anf; 
+  result->functions = parse_result->functions;
+  result->function_length = parse_result->function_length;
+
+  struct Expression ** expressions = calloc(100, sizeof(struct Expression*));  
+  anf->expressions = expressions;
+  anf->count = 0;
+  for (int x = 0 ; x < parse_result->function_length; x++) {
+    struct NormalForm * function_anf = malloc(sizeof(struct NormalForm));
+    struct Expression ** function_expressions= calloc(100, sizeof(struct Expression*));
+    parse_result->functions[x]->anf = function_anf;
+    parse_result->functions[x]->anf->count = 0;
+    parse_result->functions[x]->anf->expressions = function_expressions;
+    for (int y = 0 ; y < parse_result->functions[x]->statements->statements; y++) {
+      descendanf(parse_result->functions[x]->anf, parse_result->functions[x]->exps[y]);
+    }
+  }
+  for (int y = 0 ; y < parse_result->statements->statements; y++) {
+    descendanf(anf, parse_result->exps[y]);
+  }
+  return result;
+}
+
+int codegen(struct ANF *anfs, struct NormalForm *anf, char * destination) {
+  for (int x = 0 ; x < anf->count; x++) {
+    switch (anf->expressions[x]->type) {
+      case IDENTIFIER: 
+         printf("Generating reference\n"); 
+      break;  
+    }
+  }  
+}
+
+int machine_code(struct ANF *anfs, char * destination) {
+  int pc = 0;
+  for (int x = 0 ; x < anfs->function_length; x++) {
+    printf("Codegen for function %s\n", anfs->functions[x]->name);
+    codegen(anfs, anfs->functions[x]->anf, destination);  
+  }
+  printf("Codegen for main\n");
+  codegen(anfs, anfs->anf, destination);  
+}
 
 int dump(struct ParseResult *parse_result) {
   for (int x = 0 ; x < parse_result->function_length; x++) {
     dump_function(parse_result->functions[x]);     
   } 
+}
+
+int dump_anf(struct NormalForm *anf) {
+  for (int x = 0 ; x < anf->count; x++) {
+    switch (anf->expressions[x]->type) {
+      case MEMBER_ACCESS:
+        printf("member access\n");
+        break;
+      case IDENTIFIER:
+        printf("identifier %s %d\n", anf->expressions[x]->stringvalue, anf->expressions[x]->numbervalue);
+        break;
+      case METHOD_CALL:
+        printf("method call\n");
+        break;
+    }
+  }  
 }
 
 int main(int argc, char *argv[])
@@ -731,12 +849,24 @@ int main(int argc, char *argv[])
     printf("Parsing code\n%s", buffer);
     // start to process your data / extract strings here...
     struct ParseResult *ast = parse(length, buffer);  
-
+    printf("#### Code:\n");
+    printf("%s", ast->program_body);
     printf("Dumping AST\n");
     for (int x = 0 ; x < ast->statements->statements; x++) {
       dump_expressions(1, ast->exps[x]);
     }
     dump(ast);
+    struct ANF * anfs = normalform(ast);
+    printf("Dumping ANF\n");
+    for (int x = 0 ; x < anfs->function_length; x++) {
+      printf("ANF for function %s\n", anfs->functions[x]->name);
+      dump_anf(anfs->functions[x]->anf);
+    }
+    printf("ANF for main\n");
+    dump_anf(anfs->anf);
+    printf("Assigning registers\n");
+    
+    machine_code(anfs, write_region);
   }
 
   /*for (size_t i = 0; buffer[i * 2 + 1] != '\0'; i++) {
