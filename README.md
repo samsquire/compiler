@@ -216,7 +216,7 @@ instruction 6 func println falls in range of Hello world %d
 
 # JIT compiler written in C
 
-I am as far as the frontend. The compiler reads syntax that resembles the following and turns it into an AST.
+I have generated ANF and virtual register allocation information. The compiler reads syntax that resembles the following and turns it into an AST and ANF.
 
 ```
 function other(int number) {
@@ -229,3 +229,14 @@ function hello(int number, string data) {
 hello(6);
 
 ```
+
+* I need to know the memory address of the memory being written to so that I can adapt all relative pointers.
+* I need to know the function index to compile at runtime.
+
+```
+mov $FUNCTION_ID %eax
+call compile
+```
+Create an executable buffer for each function.
+
+Then rewrite the compiled data buffer for that function with the compiled machine code.
