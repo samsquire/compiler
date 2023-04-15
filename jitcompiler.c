@@ -15,6 +15,88 @@
 #include <sys/mman.h>
 #define PCRE2_CODE_UNIT_WIDTH 8
 #include <pcre2.h>
+#define MAX_SIZE 1024
+
+struct hashmap_key {
+  char key[1024];
+  int len;
+};
+struct hashmap_value {
+  uintptr_t  value;
+  int nested;
+  int set;
+};
+
+struct Assignment {
+  struct Expression *expression;
+  char * variable;  
+  int variable_length;
+  int type;
+  char * symbol; 
+  char * left;
+  char * right;
+  char * text;
+  
+};
+
+struct hashmap {
+  int id;
+  struct hashmap_key key[MAX_SIZE];       
+  struct hashmap_value value[MAX_SIZE]; 
+};
+struct work_def {
+  struct hashmap *hashmap;
+  int running;
+  int count;
+};
+
+// from https://stackoverflow.com/a/7666577/10662977
+unsigned long
+hash(unsigned char *str)
+{
+    unsigned long hash = 5381;
+    int c;
+
+    while (c = *str++)
+        hash = ((hash << 5) + hash) + c; /* hash * 33 + c */
+
+    return hash;
+}
+
+int set_hashmap(struct hashmap *hashmap, char key[], uintptr_t value) {
+    unsigned long hsh = hash(key) % MAX_SIZE;
+    memcpy(&(*hashmap).key[hsh], key, MAX_SIZE); 
+    hashmap->value[hsh].value =  value; 
+    hashmap->value[hsh].set = 1;
+}
+
+int set_hashmap_nested(struct hashmap *hashmap, char key[], struct hashmap *nested) {
+    unsigned long hsh = hash(key) % MAX_SIZE;
+    memcpy(&(*hashmap).key[hsh], key, MAX_SIZE); 
+    hashmap->value[hsh].nested = nested->id;
+}
+
+struct hashmap_value * get_hashmap(struct hashmap *hashmap, char key[]) {
+    unsigned long hsh = hash(key) % MAX_SIZE;
+    return &hashmap->value[hsh];
+}
+struct hashmap_value * get_hashmap_nested(struct hashmap *hashmaps, struct hashmap *hashmap, char key[], char subkey[]) {
+    unsigned long hsh = hash(key) % MAX_SIZE;
+    int nested = (*hashmap).value[hsh].nested;
+    return get_hashmap(&hashmaps[nested], subkey);
+}
+
+void *clone_benchmark(void *args) {
+    struct work_def *work = args;
+    int current = 0;
+    struct hashmap *hashmaps = calloc(MAX_SIZE, sizeof(struct hashmap));
+    printf("Using %luGB for test.\n", MAX_SIZE * sizeof(struct hashmap) / 1024 / 1024 / 1024);
+    while (work->running == 1) {
+        memcpy(&hashmaps[current++], work->hashmap, sizeof(struct hashmap)); 
+        current = current % MAX_SIZE; 
+        work->count++;
+    }
+}
 
 int convert_to_hex(char c)
 {
@@ -39,6 +121,15 @@ int convert_to_hex(char c)
 #define METHOD_CALL 3
 #define MEMBER_ACCESS 4
 #define IDENTIFIER 5
+#define ADD 6
+#define SUBTRACT 7
+#define MULTIPLY 8
+#define RETURN 9
+// assignment nodes
+#define VARIABLE 0
+#define REFERENCE 1
+#define LOOKUP 2
+#define ADD_OPERATION 3
 
 struct Parameter {
   char * name;
@@ -64,12 +155,17 @@ struct Function {
 };
 
 struct Expression {
+  int id;
   int type;
   struct ExpressionSource **exps;
   struct StatementSource * statements;
   char * stringvalue;
   int stringlength;
   int numbervalue;
+  char * symbol;
+  char * variable;
+  int variable_length;
+  int assigned;
 };
 
 struct ExpressionSource {
@@ -95,6 +191,7 @@ struct ParseResult {
   struct ExpressionSource **exps; 
   struct StatementSource * statements;
   char * last_token;
+  int current_id;
 };
 
 struct NormalForm {
@@ -124,6 +221,18 @@ int dump_expressions(int count, struct ExpressionSource *exps) {
           break;
         case METHOD_CALL:
           printf("%smethod call %s %d\n", spaces, expression->stringvalue, expression->numbervalue);
+          break;
+        case ADD:
+          printf("%sadd %s %d\n", spaces, expression->stringvalue, expression->numbervalue);
+          break;
+        case RETURN:
+          printf("%sreturn %s %d\n", spaces, expression->stringvalue, expression->numbervalue);
+          break;
+        case SUBTRACT:
+          printf("%ssubtract %s %d\n", spaces, expression->stringvalue, expression->numbervalue);
+          break;
+        case MULTIPLY:
+          printf("%smultiply %s %d\n", spaces, expression->stringvalue, expression->numbervalue);
           break;
       }
     for (int y = 0 ; y < expression->statements->statements; y++) {
@@ -397,16 +506,30 @@ char * gettok(struct ParseResult *parse_result, char * caller) {
   return token;
 }
 
-unsigned long
-hash(unsigned char *str)
-{
-    unsigned long hash = 5381;
-    int c;
+int subsume(struct ExpressionSource **statements, struct StatementSource *statementsource, int type, struct ParseResult * parse_result) {
+      struct ExpressionSource **_newstatements2 = calloc(100, sizeof(struct ExpressionSource)); 
+      struct ExpressionSource *_newexps = malloc(sizeof(struct ExpressionSource)); 
+      struct StatementSource *_newstatementsource3 = malloc(sizeof(struct StatementSource)); 
+      _newstatementsource3->statements = 1;
+    
+      _newexps->expressions = statements[statementsource->statements - 1]->expressions;
+      _newexps->expression_length = statements[statementsource->statements - 1]->expression_length;
+      _newexps->current_into = statements[statementsource->statements - 1]->current_into;
 
-    while (c = *str++)
-        hash = ((hash << 5) + hash) + c; /* hash * 33 + c */
+      struct Expression * _add = malloc(sizeof(struct Expression));
+      _add->id = parse_result->current_id++;
+      _add->type = type;
+      _add->exps = _newstatements2;
+      _add->statements = _newstatementsource3;
+      _newstatements2[0] = _newexps;
 
-    return hash;
+       
+      struct Expression **_newroot = calloc(100, sizeof(struct Expression*));
+      statements[statementsource->statements - 1]->expressions = _newroot; 
+      statements[statementsource->statements - 1]->expression_length = 0;
+      *statements[statementsource->statements - 1]->current_into = _newroot;
+      statements[statementsource->statements - 1]->expressions[statements[statementsource->statements - 1]->expression_length++] = _add;
+
 }
 
 struct ExpressionSource ** parse_expressions(
@@ -419,11 +542,84 @@ struct ExpressionSource ** parse_expressions(
   char * tokenstop) {
   char * token;
    
+  /*
+add 193486030
+subtract 7572940974490733
+multiply 7572685654880005
+
+  */
    
   while ((token = gettok(parse_result, "functionbodyitem")) && parse_result->end == 0 && strcmp(token, "curlyclose") != 0 && (usetokenstop == 0 || (usetokenstop == 1 && strcmp(token, tokenstop) != 0))) {
     unsigned long hashv = hash(token);
     printf("Hash for token %s is %ld\n", token, hashv);
     switch (hashv) {
+      case 6953974653989: // case return 
+        // subsume(statements, statementsource, RETURN, parse_result);
+        printf("%s Return statement\n", caller);
+        struct ExpressionSource * _newline3 = malloc(sizeof(struct ExpressionSource));
+        struct ExpressionSource * _emptyline3 = malloc(sizeof(struct ExpressionSource));
+        struct ExpressionSource ** _empty5 = malloc(sizeof(struct ExpressionSource*));
+        struct ExpressionSource ** _empty6 = malloc(sizeof(struct ExpressionSource*));
+        struct Expression ** _new_expressions3 = calloc(100, sizeof(struct Expression*));
+        struct Expression ** _returnexpressions = calloc(100, sizeof(struct Expression*));
+        struct Expression * _exprs2 = calloc(1, sizeof(struct Expression));
+        struct StatementSource * _newstatementsource = calloc(1, sizeof(struct StatementSource));
+        struct StatementSource * _newstatementsource2 = calloc(1, sizeof(struct StatementSource));
+        struct Expression * _return = malloc(sizeof(struct Expression));
+        printf("%p\n", statements[statementsource->statements - 1]->expressions);
+        statements[statementsource->statements - 1]->expressions[statements[statementsource->statements - 1]->expression_length++] = _return; 
+        statementsource->statements++;
+        statements[statementsource->statements - 1] = _newline3;
+
+        statementsource = _newstatementsource2;
+
+        _return->id = parse_result->current_id++;
+        _return->type = RETURN;
+        _return->symbol = "(ret)";
+        _return->exps = _empty6;
+        _return->statements = _newstatementsource2;
+        _newstatementsource->statements = 1;
+        _newstatementsource2->statements = 1;
+        _empty5[0] = _newline3;
+        statements = _empty6;
+
+        _newline3->expression_length = 0;
+        _newline3->expressions = _new_expressions3;
+        _newline3->current_into = &_new_expressions3;
+
+        _empty6[0] = _emptyline3;
+        _emptyline3->expression_length = 0;
+        _emptyline3->expressions = _returnexpressions;
+        _emptyline3->current_into = &_returnexpressions;
+        break;
+      case 193486030: // case add
+        struct ExpressionSource **_newstatements2 = calloc(100, sizeof(struct ExpressionSource)); 
+        struct ExpressionSource *_newexps = malloc(sizeof(struct ExpressionSource)); 
+        struct StatementSource *_newstatementsource3 = malloc(sizeof(struct StatementSource)); 
+        _newstatementsource3->statements = 1;
+      
+        _newexps->expressions = statements[statementsource->statements - 1]->expressions;
+        _newexps->expression_length = statements[statementsource->statements - 1]->expression_length;
+        _newexps->current_into = statements[statementsource->statements - 1]->current_into;
+
+        struct Expression * _add = malloc(sizeof(struct Expression));
+        _add->id = parse_result->current_id++;
+        _add->type = ADD;
+        _add->symbol = "+";
+        _add->exps = _newstatements2;
+        _add->statements = _newstatementsource3;
+        _newstatements2[0] = _newexps;
+
+         
+        struct Expression **_newroot = calloc(100, sizeof(struct Expression*));
+        statements[statementsource->statements - 1]->expressions = _newroot; 
+        statements[statementsource->statements - 1]->expression_length = 0;
+        *statements[statementsource->statements - 1]->current_into = _newroot;
+        statements[statementsource->statements - 1]->expressions[statements[statementsource->statements - 1]->expression_length++] = _add;
+        statements = _newstatements2;
+        statementsource = _newstatementsource3;
+        break;
+      
       case 6953778704349: // case . case member
         printf("Is an member access operator\n");
 
@@ -437,7 +633,9 @@ struct ExpressionSource ** parse_expressions(
         newexps->current_into = statements[statementsource->statements - 1]->current_into;
 
         struct Expression * member = malloc(sizeof(struct Expression));
+        member->id = parse_result->current_id++;
         member->type = MEMBER_ACCESS;
+        member->symbol = ".";
         member->exps = newstatements2;
         member->statements = newstatementsource3;
         newstatements2[0] = newexps;
@@ -448,8 +646,7 @@ struct ExpressionSource ** parse_expressions(
         statements[statementsource->statements - 1]->expression_length = 0;
         *statements[statementsource->statements - 1]->current_into = newroot;
         statements[statementsource->statements - 1]->expressions[statements[statementsource->statements - 1]->expression_length++] = member;
-        
-      break; 
+        break; 
       case 210708961883: // case ) case close  parameterlistend
         printf("%s Close bracket\n", caller);
         break;
@@ -464,6 +661,7 @@ struct ExpressionSource ** parse_expressions(
         statements[statementsource->statements - 1] = _newline2;
         _newline2->expression_length = 0;
         _newline2->expressions = _new_expressions2;
+        _newline2->current_into = &_new_expressions2;
         break;
       case 6385555319: // case ( case open
         printf("open bracket\n");
@@ -476,23 +674,24 @@ struct ExpressionSource ** parse_expressions(
         
         struct ExpressionSource ** _newstatements = calloc(100, sizeof(struct ExpressionSource*)); 
         struct Expression ** empty = calloc(100, sizeof(struct Expression*)); 
+        struct Expression ** method_call_expressions = calloc(100, sizeof(struct Expression*));
+        method_call_expressions[0] = owner[owner_size - 1];
         struct ExpressionSource * expression_exps = malloc(sizeof(struct ExpressionSource)); 
         struct StatementSource * newstatementsource2 = malloc(sizeof(struct StatementSource));
         // struct Expression ** expressions = calloc(100, sizeof(struct Expression*)); 
         struct Expression * method_call = malloc(sizeof(struct Expression));
-        statements[statementsource->statements - 1]->expressions = empty;
-        empty[0] = method_call;
-        statements[statementsource->statements - 1]->expression_length = 1;
+        owner[owner_size - 1] = method_call;
+        // statements[statementsource->statements - 1]->expression_length = 1;
+        method_call->id = parse_result->current_id++;
         method_call->type = METHOD_CALL;
         // method_call->stringvalue = token;
         method_call->exps = _newstatements;
         method_call->statements = newstatementsource2;
         newstatementsource2->statements = 1;
         _newstatements[0] = expression_exps;
-        method_call->exps[newstatementsource2->statements - 1]->expression_length = 0;
-        method_call->exps[newstatementsource2->statements - 1]->expressions = owner;
+        method_call->exps[newstatementsource2->statements - 1]->expression_length = 1;
+        method_call->exps[newstatementsource2->statements - 1]->expressions = method_call_expressions;
         expression_exps->current_into = owner_into;
-        method_call->exps[newstatementsource2->statements - 1]->expression_length = owner_size;
 
         printf("expression location %d %p\n", method_call->exps[newstatementsource2->statements - 1]->expression_length, method_call->exps[newstatementsource2->statements - 1]->expressions[method_call->exps[newstatementsource2->statements - 1]->expression_length - 1]);
         dump_expressions(1, statements[statementsource->statements - 1]);
@@ -530,6 +729,7 @@ struct ExpressionSource ** parse_expressions(
         statements[statementsource->statements - 1] = newline2;
         newline2->expression_length = 0;
         newline2->expressions = new_expressions;
+        newline2->current_into = &new_expressions;
       break;
       default:  // identifier 
        printf("%s parseexpression Is an identifier %s\n", caller, token);
@@ -541,8 +741,11 @@ struct ExpressionSource ** parse_expressions(
        struct ExpressionSource *identifierexps = malloc(sizeof(struct ExpressionSource));
        struct StatementSource *newstatementsource = malloc(sizeof(struct StatementSource));
        struct Expression **identifierexpressions = calloc(100, sizeof(struct Expression*));
+
+       identifier->id = parse_result->current_id++;
        identifier->exps = newstatements;
        identifier->statements = newstatementsource;
+       identifier->symbol = "^";
        newstatementsource->statements = 1;
        newstatements[0] = identifierexps;
        printf("identifier expression %p\n", identifier->exps[newstatementsource->statements - 1]);
@@ -652,6 +855,7 @@ struct ParseResult * continue_parse(
       struct StatementSource * _newstatementsource = malloc(sizeof(struct StatementSource));
       struct Expression ** expression = calloc(100, sizeof(struct Expression));
       _newstatementsource->statements = 1;
+      identifier->id = parse_result->current_id++;
       identifier->type = IDENTIFIER;
       identifier->stringvalue = token;
       identifier->exps = newstatements;
@@ -695,7 +899,7 @@ struct ParseResult* parse(int length, char * program_body) {
   exps->expression_length = 0;
   exps->current_into = &root;
   printf("FIRST INTO %p\n", root); 
-  char * keywords[] = {"member", "function", "if", "return", "open", "close", "comma"};
+  char * keywords[] = {"member", "function", "if", "return", "open", "close", "comma", "add", "subtract", "multiply"};
   printf("HASH TABLE %ld\n", sizeof(keywords));
   for (int x = 0 ; x < sizeof(keywords) / sizeof(keywords[0]); x++) {
     printf("%s %ld\n", keywords[x], hash(keywords[x]));
@@ -777,9 +981,142 @@ int codegen(struct ANF *anfs, struct NormalForm *anf, char * destination) {
     }
   }  
 }
+#define BINOP 0
+#define UNARY 1
+int assignregisters(struct ANF *anfs) {
+  struct Assignment * assignments = calloc(100, sizeof(struct Assignment));
+  int assignment_counter = 0; 
+  int counter = 0; 
+  
+  for (int x = 0 ; x < anfs->anf->count; x++) {
+    switch (anfs->anf->expressions[x]->type) {
+      case METHOD_CALL:
+        char * key = malloc(sizeof(char) * 50);
+        sprintf(key, "t%d", counter++);
+        printf("Method call Assigning %d to variable %s\n", anfs->anf->expressions[x]->id, key);
+        assignments[assignment_counter].type = VARIABLE;
+        assignments[assignment_counter].variable_length = strlen(key);
+        assignments[assignment_counter].variable = key;
+        
+        assignments[assignment_counter].symbol = anfs->anf->expressions[x]->symbol;
+        assignments[assignment_counter].left = anfs->anf->expressions[x]->variable; 
+        anfs->anf->expressions[x]->variable = key;
+        anfs->anf->expressions[x]->variable_length = assignments[assignment_counter].variable_length;
+        char method_call_text[300];
+        memset(method_call_text, '\0', 300);
+        int position = 0;
+        int first = 0;
+        for (int y = 0 ; y < anfs->anf->expressions[x]->statements->statements; y++) {
+            for (int e = 0; e < anfs->anf->expressions[x]->exps[y]->expression_length; e++) {
+              for (int c = 0 ; c < anfs->anf->expressions[x]->exps[y]->expressions[e]->variable_length ; c++) {
+                method_call_text[position++] = anfs->anf->expressions[x]->exps[y]->expressions[e]->variable[c];
+              }
+              if (first == 1) {
+                method_call_text[position++] = ' ';
+                method_call_text[position++] = ',';
+                method_call_text[position++] = ' ';
+              }
+              if (first == 0) {
+                method_call_text[position++] = '(';
+                first = 1;
+              }
+           }
+        }
+        method_call_text[position++] = ')';
+        // printf("%s\n", method_call_text);
+
+        char * text = malloc(sizeof(char) * 400);
+        sprintf(key, "t%d", counter++);
+        sprintf(text, "%s <- %s", key, method_call_text);
+        assignments[assignment_counter].text = text;
+
+        assignment_counter++;
+        break;
+      case IDENTIFIER:
+        if (anfs->anf->expressions[x]->assigned == 0) {
+          printf("Created a identifier reference\n");
+          anfs->anf->expressions[x]->assigned = 1;
+          assignments[assignment_counter].type = REFERENCE;
+          assignments[assignment_counter].symbol = anfs->anf->expressions[x]->symbol;
+          assignments[assignment_counter].variable = anfs->anf->expressions[x]->stringvalue;
+          assignments[assignment_counter].variable_length = strlen(assignments[assignment_counter].variable);
+          anfs->anf->expressions[x]->variable_length = assignments[assignment_counter].variable_length;
+          anfs->anf->expressions[x]->variable = anfs->anf->expressions[x]->stringvalue;
+          char * text5 = malloc(sizeof(char) * 100);
+          memset(text5, '\0', 100);
+          sprintf(text5, "%s <- %s", assignments[assignment_counter].variable, assignments[assignment_counter].variable);
+          assignments[assignment_counter].text = text5; 
+          assignment_counter++;
+        }
+        break; 
+      case MEMBER_ACCESS:
+        char * key2 = malloc(sizeof(char) * 50);
+        sprintf(key2, "t%d", counter++);
+        printf("Member lookup Assigning %d to variable %s\n", anfs->anf->expressions[x]->id, key2);
+        assignments[assignment_counter].type = BINOP;
+        assignments[assignment_counter].variable = key2;
+        assignments[assignment_counter].variable_length = strlen(key2);
+        assignments[assignment_counter].symbol = anfs->anf->expressions[x]->symbol;
+        anfs->anf->expressions[x]->variable = key2;
+        anfs->anf->expressions[x]->variable_length = assignments[assignment_counter].variable_length;
+        char * text4 = malloc(sizeof(char) * 100);
+        sprintf(key2, "t%d", counter++);
+        memset(text4, '\0', 100);
+        sprintf(text4, "%s <- %s %s", key2, anfs->anf->expressions[x]->exps[0]->expressions[0]->variable, anfs->anf->expressions[x]->exps[0]->expressions[1]->variable);
+        assignments[assignment_counter].text = text4;
+        assignment_counter++;
+        break;
+      case ADD:
+        char * key3 = malloc(sizeof(char) * 50);
+        sprintf(key3, "t%d", counter++);
+        printf("Add operation Assigning %d to variable %s\n", anfs->anf->expressions[x]->id, key3);
+        assignments[assignment_counter].type = BINOP;
+        assignments[assignment_counter].variable = key3;
+        assignments[assignment_counter].variable_length = strlen(key3);
+        assignments[assignment_counter].symbol = anfs->anf->expressions[x]->symbol;
+        anfs->anf->expressions[x]->variable = key3;
+        anfs->anf->expressions[x]->variable_length = assignments[assignment_counter].variable_length;
+        
+        assignments[assignment_counter].left = anfs->anf->expressions[x]->exps[0]->expressions[0]->variable;
+        assignments[assignment_counter].right = anfs->anf->expressions[x]->exps[0]->expressions[1]->variable;
+        char * text2 = malloc(sizeof(char) * 100);
+        memset(text2, '\0', 100);
+        sprintf(text2, "%s <- %s %s %s", key3, assignments[assignment_counter].left, assignments[assignment_counter].symbol, assignments[assignment_counter].right);
+        assignments[assignment_counter].text = text2;
+        assignment_counter++;
+        break;
+    }     
+  }
+
+  for (int x = 0 ; x < assignment_counter; x++) {
+    printf("%s\n", assignments[x].text);
+  }
+}
+
+int liveranges(struct ANF *anfs) {
+    struct hashmap *variables = calloc(10, sizeof(struct hashmap));
+    for (int i = 0 ; i < 10; i++) {
+        variables[i].id = i;
+    }
+    for (int x = 0 ; x < anfs->anf->count; x++) {
+      char key[50];
+      memset(key, '\0', 50);
+      sprintf (key, "%d", anfs->anf->expressions[x]->id);
+      struct hashmap_value *lookup = get_hashmap(&variables[0], key);
+      printf("%p\n", lookup);
+      if (lookup->set == 0) {
+        printf("key doesn't exist\n");
+        set_hashmap(&variables[0], key, (uintptr_t) &anfs->anf->expressions[x]);
+      } else {
+        printf("key exists\n");
+      }
+    } 
+   
+}
 
 int machine_code(struct ANF *anfs, char * destination) {
   int pc = 0;
+  liveranges(anfs);
   for (int x = 0 ; x < anfs->function_length; x++) {
     printf("Codegen for function %s\n", anfs->functions[x]->name);
     codegen(anfs, anfs->functions[x]->anf, destination);  
@@ -805,6 +1142,9 @@ int dump_anf(struct NormalForm *anf) {
         break;
       case METHOD_CALL:
         printf("method call\n");
+        break;
+      case ADD:
+        printf("add\n");
         break;
     }
   }  
@@ -865,6 +1205,7 @@ int main(int argc, char *argv[])
     printf("ANF for main\n");
     dump_anf(anfs->anf);
     printf("Assigning registers\n");
+    assignregisters(anfs); 
     
     machine_code(anfs, write_region);
   }
