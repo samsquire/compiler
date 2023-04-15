@@ -36,9 +36,13 @@ struct Assignment {
   char * left;
   char * right;
   char * text;
-  
+  char ** references; 
+  int reference_length;
 };
-
+struct AssignmentPair  {
+  struct Assignment *assignments;
+  int assignment_length;
+};
 struct hashmap {
   int id;
   struct hashmap_key key[MAX_SIZE];       
@@ -983,7 +987,7 @@ int codegen(struct ANF *anfs, struct NormalForm *anf, char * destination) {
 }
 #define BINOP 0
 #define UNARY 1
-int assignregisters(struct ANF *anfs) {
+struct AssignmentPair * assignregisters(struct ANF *anfs) {
   struct Assignment * assignments = calloc(100, sizeof(struct Assignment));
   int assignment_counter = 0; 
   int counter = 0; 
@@ -1006,8 +1010,13 @@ int assignregisters(struct ANF *anfs) {
         memset(method_call_text, '\0', 300);
         int position = 0;
         int first = 0;
+        int reference_count = 0;
+        char ** references = calloc(100, sizeof(char));
+        assignments[assignment_counter].references = references;
+        
         for (int y = 0 ; y < anfs->anf->expressions[x]->statements->statements; y++) {
             for (int e = 0; e < anfs->anf->expressions[x]->exps[y]->expression_length; e++) {
+              references[reference_count++] = anfs->anf->expressions[x]->exps[y]->expressions[e]->variable;
               for (int c = 0 ; c < anfs->anf->expressions[x]->exps[y]->expressions[e]->variable_length ; c++) {
                 method_call_text[position++] = anfs->anf->expressions[x]->exps[y]->expressions[e]->variable[c];
               }
@@ -1022,6 +1031,7 @@ int assignregisters(struct ANF *anfs) {
               }
            }
         }
+        assignments[assignment_counter].reference_length = reference_count;
         method_call_text[position++] = ')';
         // printf("%s\n", method_call_text);
 
@@ -1043,8 +1053,13 @@ int assignregisters(struct ANF *anfs) {
           anfs->anf->expressions[x]->variable_length = assignments[assignment_counter].variable_length;
           anfs->anf->expressions[x]->variable = anfs->anf->expressions[x]->stringvalue;
           char * text5 = malloc(sizeof(char) * 100);
+          char ** references = calloc(100, sizeof(char));
+          int identifier_reference_count = 0;
+          assignments[assignment_counter].references = references;
+          references[identifier_reference_count++] = assignments[assignment_counter].variable;
           memset(text5, '\0', 100);
           sprintf(text5, "%s <- %s", assignments[assignment_counter].variable, assignments[assignment_counter].variable);
+          assignments[assignment_counter].reference_length = identifier_reference_count;
           assignments[assignment_counter].text = text5; 
           assignment_counter++;
         }
@@ -1062,8 +1077,13 @@ int assignregisters(struct ANF *anfs) {
         char * text4 = malloc(sizeof(char) * 100);
         sprintf(key2, "t%d", counter++);
         memset(text4, '\0', 100);
+        int member_reference_count = 0;
+        char ** member_references = calloc(100, sizeof(char));
+        assignments[assignment_counter].references = member_references;
+        assignments[assignment_counter].references[member_reference_count++] = anfs->anf->expressions[x]->exps[0]->expressions[0]->variable;
         sprintf(text4, "%s <- %s %s", key2, anfs->anf->expressions[x]->exps[0]->expressions[0]->variable, anfs->anf->expressions[x]->exps[0]->expressions[1]->variable);
         assignments[assignment_counter].text = text4;
+        assignments[assignment_counter].reference_length = member_reference_count;
         assignment_counter++;
         break;
       case ADD:
@@ -1079,10 +1099,16 @@ int assignregisters(struct ANF *anfs) {
         
         assignments[assignment_counter].left = anfs->anf->expressions[x]->exps[0]->expressions[0]->variable;
         assignments[assignment_counter].right = anfs->anf->expressions[x]->exps[0]->expressions[1]->variable;
+        int add_reference_count = 0;
+        char ** add_references = calloc(100, sizeof(char));
+        add_references[add_reference_count++] = anfs->anf->expressions[x]->exps[0]->expressions[0]->variable;
+        add_references[add_reference_count++] = anfs->anf->expressions[x]->exps[0]->expressions[1]->variable;
+        assignments[assignment_counter].references = add_references;
         char * text2 = malloc(sizeof(char) * 100);
         memset(text2, '\0', 100);
         sprintf(text2, "%s <- %s %s %s", key3, assignments[assignment_counter].left, assignments[assignment_counter].symbol, assignments[assignment_counter].right);
         assignments[assignment_counter].text = text2;
+        assignments[assignment_counter].reference_length = add_reference_count;
         assignment_counter++;
         break;
     }     
@@ -1091,32 +1117,60 @@ int assignregisters(struct ANF *anfs) {
   for (int x = 0 ; x < assignment_counter; x++) {
     printf("%s\n", assignments[x].text);
   }
+  struct AssignmentPair * assignment_pair = malloc(sizeof(struct AssignmentPair));
+  assignment_pair->assignments = assignments;
+  assignment_pair->assignment_length = assignment_counter;
+  return assignment_pair;
 }
 
-int liveranges(struct ANF *anfs) {
+int liveranges(struct ANF *anfs, struct AssignmentPair *assignment_pair) {
     struct hashmap *variables = calloc(10, sizeof(struct hashmap));
+    char ** variables_list = calloc(100, sizeof(char*));
+    int variable_length = 0;
     for (int i = 0 ; i < 10; i++) {
         variables[i].id = i;
     }
-    for (int x = 0 ; x < anfs->anf->count; x++) {
-      char key[50];
+    for (int x = 0 ; x < assignment_pair->assignment_length; x++) {
+      /*char key[50];
       memset(key, '\0', 50);
-      sprintf (key, "%d", anfs->anf->expressions[x]->id);
-      struct hashmap_value *lookup = get_hashmap(&variables[0], key);
-      printf("%p\n", lookup);
-      if (lookup->set == 0) {
-        printf("key doesn't exist\n");
-        set_hashmap(&variables[0], key, (uintptr_t) &anfs->anf->expressions[x]);
-      } else {
-        printf("key exists\n");
+      sprintf(key, "%d", anfs->anf->expressions[x]->id);*/
+      for (int r = 0 ; r < assignment_pair->assignments[x].reference_length; r++) {
+        char * reference = assignment_pair->assignments[x].references[r];
+        struct hashmap_value *lookup = get_hashmap(&variables[0], reference);
+        printf("looking up %s\n", reference);
+        if (lookup->set == 0) {
+          printf("key doesn't exist\n");
+          set_hashmap(&variables[0], reference, (uintptr_t) &anfs->anf->expressions[x]);
+          variables_list[variable_length] = reference;
+          variable_length++;
+        } else {
+          printf("key exists\n");
+        }
       }
     } 
-   
+
+    for (int v = 0; v < variable_length; v++) {
+      char * search_target = variables_list[v]; 
+      int start_position_a = -1; 
+      int end_position_a = -1; 
+      for (int x = 0 ; x < assignment_pair->assignment_length; x++) {
+        if (strcmp(assignment_pair->assignments[x].variable, search_target) == 0) {
+          start_position_a = x;
+          break;
+        }
+      }
+      for (int x = 0 ; x < assignment_pair->assignment_length; x++) {
+        if (strcmp(assignment_pair->assignments[x].variable, search_target) == 0) {
+          end_position_a = x;
+        }
+      }
+     printf("Variable %s appears %d-%d\n", search_target, start_position_a, end_position_a); 
+   } 
 }
 
-int machine_code(struct ANF *anfs, char * destination) {
+int machine_code(struct ANF *anfs, struct AssignmentPair *assignment_pair, char * destination) {
   int pc = 0;
-  liveranges(anfs);
+  liveranges(anfs, assignment_pair);
   for (int x = 0 ; x < anfs->function_length; x++) {
     printf("Codegen for function %s\n", anfs->functions[x]->name);
     codegen(anfs, anfs->functions[x]->anf, destination);  
@@ -1205,9 +1259,9 @@ int main(int argc, char *argv[])
     printf("ANF for main\n");
     dump_anf(anfs->anf);
     printf("Assigning registers\n");
-    assignregisters(anfs); 
+    struct AssignmentPair *assignment_pair = assignregisters(anfs); 
     
-    machine_code(anfs, write_region);
+    machine_code(anfs, assignment_pair, write_region);
   }
 
   /*for (size_t i = 0; buffer[i * 2 + 1] != '\0'; i++) {
