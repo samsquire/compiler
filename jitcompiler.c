@@ -13,6 +13,7 @@
 #include <errno.h>
 #include <unistd.h>
 #include <sys/mman.h>
+#include <ctype.h>
 #define PCRE2_CODE_UNIT_WIDTH 8
 #include <pcre2.h>
 #define MAX_SIZE 1024
@@ -25,6 +26,12 @@ struct hashmap_value {
   uintptr_t  value;
   int nested;
   int set;
+  
+};
+
+struct RangePair {
+  struct Range ** ranges;
+  int range_length;
 };
 
 struct Assignment {
@@ -38,6 +45,16 @@ struct Assignment {
   char * text;
   char ** references; 
   int reference_length;
+  int ** reference_variable_length;
+};
+struct Range {
+  struct Expression * expression; 
+  struct Assignment *start_assignment; 
+  struct Assignment *end_assignment; 
+  int start_position; 
+  int end_position; 
+  char * variable;
+  int variable_length;
 };
 struct AssignmentPair  {
   struct Assignment *assignments;
@@ -67,9 +84,10 @@ hash(unsigned char *str)
     return hash;
 }
 
-int set_hashmap(struct hashmap *hashmap, char key[], uintptr_t value) {
+int set_hashmap(struct hashmap *hashmap, char key[], uintptr_t value, int key_length) {
     unsigned long hsh = hash(key) % MAX_SIZE;
     memcpy(&(*hashmap).key[hsh], key, MAX_SIZE); 
+    hashmap->key[hsh].len = key_length;
     hashmap->value[hsh].value =  value; 
     hashmap->value[hsh].set = 1;
 }
@@ -116,8 +134,8 @@ int convert_to_hex(char c)
   }
 }
 // types
-#define NUMBER 0
-#define STRING 0
+#define NUMBER 1
+#define STRING 2
 // ast nodes
 #define ASSIGNMENT 0
 #define REFERENCE 1
@@ -132,8 +150,8 @@ int convert_to_hex(char c)
 // assignment nodes
 #define VARIABLE 0
 #define REFERENCE 1
-#define LOOKUP 2
-#define ADD_OPERATION 3
+// tags
+#define IS_AST_METADATA 1
 
 struct Parameter {
   char * name;
@@ -170,6 +188,7 @@ struct Expression {
   char * variable;
   int variable_length;
   int assigned;
+  int tag;
 };
 
 struct ExpressionSource {
@@ -196,6 +215,7 @@ struct ParseResult {
   struct StatementSource * statements;
   char * last_token;
   int current_id;
+  int token_type;
 };
 
 struct NormalForm {
@@ -264,6 +284,8 @@ char * charget(struct ParseResult *parse_result) {
 }
 
 char * _gettok(struct ParseResult *parse_result, char * caller) {
+   // reset whether token is a number or string
+   parse_result->token_type = 0;
    while (parse_result->start || (parse_result->end == 0 && (strcmp(parse_result->last_char, " ") == 0 || strcmp(parse_result->last_char, "\n") == 0))) {
       printf("%s Skipping whitespace\n", caller);
       free(parse_result->last_char);
@@ -408,6 +430,18 @@ char * _gettok(struct ParseResult *parse_result, char * caller) {
     // when finished looping
     // pcre2_match_data_free(match_data);   /* Release memory used for the match */
     pcre2_code_free(re);  
+    int is_number = 1;
+    for (int c = 0 ; c < count ; c++) {
+      if (isdigit(identifier[c]) == 0) {
+        is_number = 0; 
+        break;
+      }
+    }
+    if (is_number == 1) {
+      parse_result->token_type = NUMBER;
+    } else {
+      parse_result->token_type = STRING;
+    }
     return identifier;
   }
    
@@ -680,6 +714,8 @@ multiply 7572685654880005
         struct Expression ** empty = calloc(100, sizeof(struct Expression*)); 
         struct Expression ** method_call_expressions = calloc(100, sizeof(struct Expression*));
         method_call_expressions[0] = owner[owner_size - 1];
+        // the identifier of a method call is metadata and doesn't need to be evaluated
+        method_call_expressions[0]->tag = IS_AST_METADATA;
         struct ExpressionSource * expression_exps = malloc(sizeof(struct ExpressionSource)); 
         struct StatementSource * newstatementsource2 = malloc(sizeof(struct StatementSource));
         // struct Expression ** expressions = calloc(100, sizeof(struct Expression*)); 
@@ -736,31 +772,35 @@ multiply 7572685654880005
         newline2->current_into = &new_expressions;
       break;
       default:  // identifier 
-       printf("%s parseexpression Is an identifier %s\n", caller, token);
-       struct Expression * identifier = malloc(sizeof(struct Expression));
-       identifier->type = IDENTIFIER;
-       identifier->stringvalue = token;
+        printf("%s parseexpression Is an identifier %s\n", caller, token);
+        struct Expression * identifier = malloc(sizeof(struct Expression));
+        identifier->type = IDENTIFIER;
+        identifier->stringvalue = token;
+        char * first_non_number;
+        if (parse_result->token_type == NUMBER) {
+          identifier->numbervalue = strtol(token, &first_non_number, 10);
+        }
 
-       struct ExpressionSource **newstatements = calloc(100, sizeof(struct ExpressionSource*));
-       struct ExpressionSource *identifierexps = malloc(sizeof(struct ExpressionSource));
-       struct StatementSource *newstatementsource = malloc(sizeof(struct StatementSource));
-       struct Expression **identifierexpressions = calloc(100, sizeof(struct Expression*));
+        struct ExpressionSource **newstatements = calloc(100, sizeof(struct ExpressionSource*));
+        struct ExpressionSource *identifierexps = malloc(sizeof(struct ExpressionSource));
+        struct StatementSource *newstatementsource = malloc(sizeof(struct StatementSource));
+        struct Expression **identifierexpressions = calloc(100, sizeof(struct Expression*));
 
-       identifier->id = parse_result->current_id++;
-       identifier->exps = newstatements;
-       identifier->statements = newstatementsource;
-       identifier->symbol = "^";
-       newstatementsource->statements = 1;
-       newstatements[0] = identifierexps;
-       printf("identifier expression %p\n", identifier->exps[newstatementsource->statements - 1]);
-       identifier->exps[newstatementsource->statements - 1]->expression_length = 0;
-       identifier->exps[newstatementsource->statements - 1]->expressions = identifierexpressions;
-       printf("statements %p\n", statements[statementsource->statements - 1]);
-       int new_position = statements[statementsource->statements - 1]->expression_length;
-       statements[statementsource->statements - 1]->expressions[new_position] = identifier;
-       statements[statementsource->statements - 1]->expression_length++;
-       printf("expression location %d %p\n", new_position, statements[statementsource->statements - 1]->expressions[new_position]);
-       dump_expressions(1, statements[statementsource->statements - 1]);
+        identifier->id = parse_result->current_id++;
+        identifier->exps = newstatements;
+        identifier->statements = newstatementsource;
+        identifier->symbol = "^";
+        newstatementsource->statements = 1;
+        newstatements[0] = identifierexps;
+        printf("identifier expression %p\n", identifier->exps[newstatementsource->statements - 1]);
+        identifier->exps[newstatementsource->statements - 1]->expression_length = 0;
+        identifier->exps[newstatementsource->statements - 1]->expressions = identifierexpressions;
+        printf("statements %p\n", statements[statementsource->statements - 1]);
+        int new_position = statements[statementsource->statements - 1]->expression_length;
+        statements[statementsource->statements - 1]->expressions[new_position] = identifier;
+        statements[statementsource->statements - 1]->expression_length++;
+        printf("expression location %d %p\n", new_position, statements[statementsource->statements - 1]->expressions[new_position]);
+        dump_expressions(1, statements[statementsource->statements - 1]);
        break;
     } 
   }
@@ -986,7 +1026,8 @@ int codegen(struct ANF *anfs, struct NormalForm *anf, char * destination) {
   }  
 }
 #define BINOP 0
-#define UNARY 1
+#define MULTIARY 1
+#define UNARY 2
 struct AssignmentPair * assignregisters(struct ANF *anfs) {
   struct Assignment * assignments = calloc(100, sizeof(struct Assignment));
   int assignment_counter = 0; 
@@ -998,7 +1039,7 @@ struct AssignmentPair * assignregisters(struct ANF *anfs) {
         char * key = malloc(sizeof(char) * 50);
         sprintf(key, "t%d", counter++);
         printf("Method call Assigning %d to variable %s\n", anfs->anf->expressions[x]->id, key);
-        assignments[assignment_counter].type = VARIABLE;
+        assignments[assignment_counter].type = MULTIARY;
         assignments[assignment_counter].variable_length = strlen(key);
         assignments[assignment_counter].variable = key;
         
@@ -1011,12 +1052,15 @@ struct AssignmentPair * assignregisters(struct ANF *anfs) {
         int position = 0;
         int first = 0;
         int reference_count = 0;
+        int reference_variable_length_count = 0;
         char ** references = calloc(100, sizeof(char));
+        int ** reference_variable_length = calloc(100, sizeof(int*));
         assignments[assignment_counter].references = references;
         
         for (int y = 0 ; y < anfs->anf->expressions[x]->statements->statements; y++) {
             for (int e = 0; e < anfs->anf->expressions[x]->exps[y]->expression_length; e++) {
               references[reference_count++] = anfs->anf->expressions[x]->exps[y]->expressions[e]->variable;
+              reference_variable_length[reference_variable_length_count++] = &anfs->anf->expressions[x]->exps[y]->expressions[e]->variable_length;
               for (int c = 0 ; c < anfs->anf->expressions[x]->exps[y]->expressions[e]->variable_length ; c++) {
                 method_call_text[position++] = anfs->anf->expressions[x]->exps[y]->expressions[e]->variable[c];
               }
@@ -1032,6 +1076,7 @@ struct AssignmentPair * assignregisters(struct ANF *anfs) {
            }
         }
         assignments[assignment_counter].reference_length = reference_count;
+        assignments[assignment_counter].reference_variable_length = reference_variable_length;
         method_call_text[position++] = ')';
         // printf("%s\n", method_call_text);
 
@@ -1046,7 +1091,7 @@ struct AssignmentPair * assignregisters(struct ANF *anfs) {
         if (anfs->anf->expressions[x]->assigned == 0) {
           printf("Created a identifier reference\n");
           anfs->anf->expressions[x]->assigned = 1;
-          assignments[assignment_counter].type = REFERENCE;
+          assignments[assignment_counter].type = UNARY;
           assignments[assignment_counter].symbol = anfs->anf->expressions[x]->symbol;
           assignments[assignment_counter].variable = anfs->anf->expressions[x]->stringvalue;
           assignments[assignment_counter].variable_length = strlen(assignments[assignment_counter].variable);
@@ -1054,8 +1099,12 @@ struct AssignmentPair * assignregisters(struct ANF *anfs) {
           anfs->anf->expressions[x]->variable = anfs->anf->expressions[x]->stringvalue;
           char * text5 = malloc(sizeof(char) * 100);
           char ** references = calloc(100, sizeof(char));
+          int ** reference_variable_length = calloc(100, sizeof(int*));
           int identifier_reference_count = 0;
+          int identifier_reference_variable_count = 0;
           assignments[assignment_counter].references = references;
+          assignments[assignment_counter].reference_variable_length = reference_variable_length;
+          reference_variable_length[identifier_reference_variable_count++] = &assignments[assignment_counter].variable_length;
           references[identifier_reference_count++] = assignments[assignment_counter].variable;
           memset(text5, '\0', 100);
           sprintf(text5, "%s <- %s", assignments[assignment_counter].variable, assignments[assignment_counter].variable);
@@ -1079,8 +1128,12 @@ struct AssignmentPair * assignregisters(struct ANF *anfs) {
         memset(text4, '\0', 100);
         int member_reference_count = 0;
         char ** member_references = calloc(100, sizeof(char));
+        int ** member_reference_variable_length = calloc(100, sizeof(int));
+        int member_reference_variable_length_count = 0;
         assignments[assignment_counter].references = member_references;
         assignments[assignment_counter].references[member_reference_count++] = anfs->anf->expressions[x]->exps[0]->expressions[0]->variable;
+        assignments[assignment_counter].reference_variable_length = member_reference_variable_length;
+        assignments[assignment_counter].reference_variable_length[member_reference_variable_length_count++] = &anfs->anf->expressions[x]->exps[0]->expressions[0]->variable_length;
         sprintf(text4, "%s <- %s %s", key2, anfs->anf->expressions[x]->exps[0]->expressions[0]->variable, anfs->anf->expressions[x]->exps[0]->expressions[1]->variable);
         assignments[assignment_counter].text = text4;
         assignments[assignment_counter].reference_length = member_reference_count;
@@ -1100,10 +1153,19 @@ struct AssignmentPair * assignregisters(struct ANF *anfs) {
         assignments[assignment_counter].left = anfs->anf->expressions[x]->exps[0]->expressions[0]->variable;
         assignments[assignment_counter].right = anfs->anf->expressions[x]->exps[0]->expressions[1]->variable;
         int add_reference_count = 0;
+        int add_reference_variable_length_count = 0;
         char ** add_references = calloc(100, sizeof(char));
+        int ** add_reference_variable_length = calloc(100, sizeof(int));
         add_references[add_reference_count++] = anfs->anf->expressions[x]->exps[0]->expressions[0]->variable;
+        int * left_length = malloc(sizeof(int));
+        int * right_length = malloc(sizeof(int));
+        *left_length = strlen(anfs->anf->expressions[x]->exps[0]->expressions[0]->variable);
+        *right_length = strlen(anfs->anf->expressions[x]->exps[0]->expressions[1]->variable);
+        add_reference_variable_length[add_reference_variable_length_count++] = left_length;
         add_references[add_reference_count++] = anfs->anf->expressions[x]->exps[0]->expressions[1]->variable;
+        add_reference_variable_length[add_reference_variable_length_count++] = right_length;
         assignments[assignment_counter].references = add_references;
+        assignments[assignment_counter].reference_variable_length = add_reference_variable_length;
         char * text2 = malloc(sizeof(char) * 100);
         memset(text2, '\0', 100);
         sprintf(text2, "%s <- %s %s %s", key3, assignments[assignment_counter].left, assignments[assignment_counter].symbol, assignments[assignment_counter].right);
@@ -1123,9 +1185,10 @@ struct AssignmentPair * assignregisters(struct ANF *anfs) {
   return assignment_pair;
 }
 
-int liveranges(struct ANF *anfs, struct AssignmentPair *assignment_pair) {
+struct RangePair * liveranges(struct ANF *anfs, struct AssignmentPair *assignment_pair) {
     struct hashmap *variables = calloc(10, sizeof(struct hashmap));
     char ** variables_list = calloc(100, sizeof(char*));
+    int ** variables_list_length = calloc(100, sizeof(int*));
     int variable_length = 0;
     for (int i = 0 ; i < 10; i++) {
         variables[i].id = i;
@@ -1140,37 +1203,107 @@ int liveranges(struct ANF *anfs, struct AssignmentPair *assignment_pair) {
         printf("looking up %s\n", reference);
         if (lookup->set == 0) {
           printf("key doesn't exist\n");
-          set_hashmap(&variables[0], reference, (uintptr_t) &anfs->anf->expressions[x]);
+          set_hashmap(&variables[0], reference, (uintptr_t) &anfs->anf->expressions[x], *assignment_pair->assignments[x].reference_variable_length[r]);
           variables_list[variable_length] = reference;
+          variables_list_length[variable_length] = assignment_pair->assignments[x].reference_variable_length[r];
           variable_length++;
         } else {
           printf("key exists\n");
         }
       }
     } 
-
+    struct Range ** ranges = calloc(100, sizeof(struct Range*));
+    int range_count = 0;
     for (int v = 0; v < variable_length; v++) {
       char * search_target = variables_list[v]; 
       int start_position_a = -1; 
+      struct Assignment *start_assignment;
+      struct Assignment *end_assignment;
       int end_position_a = -1; 
+      int variable_length = *variables_list_length[v];
       for (int x = 0 ; x < assignment_pair->assignment_length; x++) {
         if (strcmp(assignment_pair->assignments[x].variable, search_target) == 0) {
           start_position_a = x;
+          start_assignment = &assignment_pair->assignments[x];
           break;
         }
       }
       for (int x = 0 ; x < assignment_pair->assignment_length; x++) {
         if (strcmp(assignment_pair->assignments[x].variable, search_target) == 0) {
           end_position_a = x;
+          end_assignment = &assignment_pair->assignments[x];
         }
       }
+     struct Range * range = malloc(sizeof(struct Range));
+     range->start_position = start_position_a;
+     range->end_position = end_position_a;
+     range->variable = search_target;
+     range->variable_length = variable_length;
+     range->start_assignment = start_assignment;
+     range->end_assignment = end_assignment;
+     ranges[range_count++] = range;
      printf("Variable %s appears %d-%d\n", search_target, start_position_a, end_position_a); 
+
    } 
+
+  struct RangePair *range_pair = malloc(sizeof(struct RangePair));
+  range_pair->ranges = ranges;
+  range_pair->range_length = range_count;
+  return range_pair;
+}
+
+
+int assignrealregisters(struct ANF *anfs, struct RangePair *range_pair, struct AssignmentPair *assignment_pair, char **realregisters, int register_count) {
+  char ** previousassignments = calloc(100, sizeof(char*)); 
+  for (int x = 0 ; x < register_count; x++) {
+    previousassignments[register_count - x] = realregisters[x];
+  }
+  int assignment_stack_position = register_count - 1;
+  struct hashmap *template_variables = malloc(sizeof(struct hashmap)); 
+   
+  for (int x = 0 ; x < range_pair->range_length; x++) {
+    set_hashmap(template_variables, range_pair->ranges[x]->variable, (uintptr_t) 0, range_pair->ranges[x]->variable_length);
+  }
+  for (int instruction = 0; instruction < assignment_pair->assignment_length; instruction++) {
+    for (int r = 0 ; r < range_pair->range_length; r++) {
+        if (instruction >= range_pair->ranges[r]->start_position && instruction <= range_pair->ranges[r]->end_position) {
+          // printf("Instruction %s <- %s appears in range of %d-%d\n", assignment_pair->assignments[instruction].variable, assignment_pair->assignments[instruction].text, range_pair->ranges[r]->start_position, range_pair->ranges[r]->end_position);  
+          
+          struct hashmap_value *lookup = get_hashmap(template_variables, range_pair->ranges[r]->variable);
+          if (lookup->value == 0) {
+            char * chosen_register = previousassignments[assignment_stack_position];
+            set_hashmap(template_variables, range_pair->ranges[r]->variable, (uintptr_t) chosen_register, strlen(chosen_register));
+            printf("Assigned register %s to %s <- %s\n", chosen_register, assignment_pair->assignments[instruction].variable, assignment_pair->assignments[instruction].text); 
+            assignment_stack_position--;
+          }
+          //printf("%p %d %d\n", (char*)lookup->value, instruction, range_pair->ranges[r]->end_position);
+          if (lookup->set == 1 && lookup->value != 0 && instruction == range_pair->ranges[r]->end_position) {
+            printf("Register %s is free\n", (char*) lookup->value); 
+            previousassignments[assignment_stack_position] = (char*) lookup->value;
+            assignment_stack_position++;
+            lookup->value = 0;
+            lookup->set = 0;
+          }
+        }
+      } 
+  }
+
+  
 }
 
 int machine_code(struct ANF *anfs, struct AssignmentPair *assignment_pair, char * destination) {
   int pc = 0;
-  liveranges(anfs, assignment_pair);
+  struct RangePair *range_pair = liveranges(anfs, assignment_pair);
+  char ** real_registers = calloc(100, sizeof(char*));
+  int register_count = 0; 
+  real_registers[register_count++] = "rax";
+  real_registers[register_count++] = "rcx";
+  real_registers[register_count++] = "rdx";
+  real_registers[register_count++] = "rbx";
+  real_registers[register_count++] = "rsi";
+  real_registers[register_count++] = "rdi";
+
+  assignrealregisters(anfs, range_pair, assignment_pair, real_registers, register_count);
   for (int x = 0 ; x < anfs->function_length; x++) {
     printf("Codegen for function %s\n", anfs->functions[x]->name);
     codegen(anfs, anfs->functions[x]->anf, destination);  
