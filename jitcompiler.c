@@ -47,6 +47,7 @@ It is barebones and a toy.
 #include <pcre2.h>
 #define MAX_SIZE 1024
 
+
 struct hashmap_key {
   char key[1024];
   int len;
@@ -196,7 +197,7 @@ struct ANF {
   struct Function **functions;
   struct NormalForm *anf;
   int function_length;
-  char * code;
+  struct CodeGenContext * codegen_context;
 };
 
 struct Function {
@@ -209,6 +210,8 @@ struct Function {
   struct StatementSource * statements;
   struct NormalForm * anf;
   char * code;
+  struct FunctionContext *context;
+  int compiled;
 };
 
 struct Expression {
@@ -259,6 +262,20 @@ struct NormalForm {
   struct Expression ** expressions;
   int count;
   struct AssignmentPair *assignment_pair;
+};
+
+struct CodeGenContext {
+  struct Function ** global_functions;
+  struct Function ** user_functions;
+  int function_length;
+  int global_function_length;
+  struct FunctionContext * main_function_context;
+};
+struct CodeGenContext * CODEGEN_CONTEXT;
+struct FunctionContext {
+  int pc;
+  struct Function * function;
+  char * code;
 };
 
 #define BUF_SIZE 1024
@@ -1055,39 +1072,68 @@ struct ANF * normalform(struct ParseResult *parse_result) {
   return result;
 }
 
-int codegen(struct ANF *anfs) {
-  for (int x = 0 ; x < anfs->function_length; x++) { 
-    printf("generating code region for function %s\n", anfs->functions[x]->name);
-    char *write_region = mmap(NULL,
-            getpagesize(),
-            PROT_READ | PROT_WRITE,
-            MAP_SHARED | MAP_ANONYMOUS,
-            -1,
-            0);
-     if (write_region == NULL) {
-       error_at_line(-ENOMEM, errno, __FILE__, __LINE__, "couldn't allocate\n");
-     }
-     mprotect(write_region, getpagesize(), PROT_READ | PROT_EXEC);
-     anfs->functions[x]->code = write_region;
+struct Function * resolve_name(struct CodeGenContext * context, char * function_name) {
+  printf("Resolving function %s\n", function_name);
+  for (int x = 0 ; x < context->function_length; x++) {
+    printf("Inspecting function %s\n", context->user_functions[x]->name);
+    if (strcmp(context->user_functions[x]->name, function_name) == 0) {
+      return context->user_functions[x];
+    }
   }
-  char *write_region = mmap(NULL,
-       getpagesize(),
-       PROT_READ | PROT_WRITE,
-       MAP_SHARED | MAP_ANONYMOUS,
-       -1,
-       0);
-  mprotect(write_region, getpagesize(), PROT_READ | PROT_EXEC);
-  
-  if (write_region == NULL) {
-    error_at_line(-ENOMEM, errno, __FILE__, __LINE__, "couldn't allocate\n");
+  for (int x = 0 ; x < context->global_function_length; x++) {
+    if (strcmp(context->global_functions[x]->name, function_name) == 0) {
+      return context->global_functions[x];
+    }
   }
-  for (int x = 0 ; x < anfs->anf->assignment_pair->assignment_length; x++) {
-    switch (anfs->anf->assignment_pair->assignments[x].expression->type) {
+}
+
+
+int writecode(struct CodeGenContext * context, struct FunctionContext * function_context, struct NormalForm * anf) {
+  for (int x = 0 ; x < anf->assignment_pair->assignment_length; x++) {
+    switch (anf->assignment_pair->assignments[x].expression->type) {
+      case METHOD_CALL:
+         printf("Generating method call\n"); 
+         int call_bytes_length = 5;
+         char * method_bytes = malloc(call_bytes_length);
+         int method_ins_count = 0;
+         method_bytes[method_ins_count++] = 0xe8; 
+         char * method_address = malloc(sizeof(char) * 4);
+         int method_address_count = 0;
+         struct Expression * method_call_expression = anf->assignment_pair->assignments[x].expression;
+         struct Expression * method_call_name_identifier =  anf->assignment_pair->assignments[x].expression->exps[0]->expressions[0];
+         char * method_name = method_call_name_identifier->stringvalue;
+         struct Function * function = resolve_name(context, method_name);
+         printf("%s\n", method_name);
+         
+         printf("Method call to function %s at %p\n", method_name, function->code);
+         if (function->compiled == 1) {
+         
+           for (int n = 0 ; n < sizeof(char) * 4; n++) {
+             method_address[method_address_count++] = function->code[n];
+           }
+           for (int n = 0 ; n < sizeof(char) * 4; n++) {
+             method_bytes[method_ins_count++] = method_address[n];
+           }
+           for (int i = 0; i < call_bytes_length; i++) {
+             function_context->code[function_context->pc++] = method_bytes[i]; 
+           } 
+         }
+         break;
+      case ADD:
+         printf("Generating add\n"); 
+         int add_size_of_immediate = sizeof(char) * sizeof(int);
+         int add_bytes_count = 4 * sizeof(char) + add_size_of_immediate;
+         char * add_bytes = malloc(add_bytes_count);
+         int add_byte_count = 0;
+          
+         break;  
       case IDENTIFIER: 
-         if (anfs->anf->expressions[x]->tag != IS_AST_METADATA) {
+         if (anf->expressions[x]->tag != IS_AST_METADATA) {
            printf("Generating reference\n"); 
-           if (anfs->anf->expressions[x]->token_type == NUMBER) {
-             char * bytes = malloc(4 * sizeof(char));
+           if (anf->expressions[x]->token_type == NUMBER) {
+             int size_of_immediate = sizeof(char) * 4;
+             int bytes_count = (3 * sizeof(char)) + size_of_immediate;
+             char * bytes = malloc(bytes_count);
              int byte_count = 0;
              bytes[0] = 0x48; 
              bytes[1] = 0xc7;
@@ -1100,11 +1146,11 @@ int codegen(struct ANF *anfs) {
   rdi 193504548
 
              */
-             printf("%s %s\n", anfs->anf->assignment_pair->assignments[x].variable, anfs->anf->assignment_pair->assignments[x].text);
-             for (int y = 0 ; y < anfs->anf->assignment_pair->assignments[x].reference_length; y++) {
-               printf("reference %s\n", anfs->anf->assignment_pair->assignments[x].references[y]); 
+             printf("%s %s\n", anf->assignment_pair->assignments[x].variable, anf->assignment_pair->assignments[x].text);
+             for (int y = 0 ; y < anf->assignment_pair->assignments[x].reference_length; y++) {
+               printf("reference %s\n", anf->assignment_pair->assignments[x].references[y]); 
              }
-             unsigned long reg = hash(anfs->anf->assignment_pair->assignments[x].chosen_register);
+             unsigned long reg = hash(anf->assignment_pair->assignments[x].chosen_register);
              switch (reg) {
                case 193504464: // case rax 
                  bytes[2] = 0xc0;
@@ -1125,14 +1171,108 @@ int codegen(struct ANF *anfs) {
                  bytes[2] = 0xc7;
                break;
              }
-             bytes[3] = 0x48;
-             printf("mov $%d, %%%s\n", anfs->anf->expressions[x]->numbervalue, anfs->anf->assignment_pair->assignments[x].chosen_register);
+             int * immediate = malloc(size_of_immediate);    
+             char * immediate_bytes = (char*)&immediate; 
+             memcpy(immediate_bytes, &anf->expressions[x]->numbervalue, size_of_immediate);
+             int ins_counter = 3;
+             bytes[ins_counter++] = immediate_bytes[0];
+             bytes[ins_counter++] = immediate_bytes[1];
+             bytes[ins_counter++] = immediate_bytes[2];
+             bytes[ins_counter++] = immediate_bytes[3];
+             printf("mov $%d, %%%s\n", anf->expressions[x]->numbervalue, anf->assignment_pair->assignments[x].chosen_register);
+             for (int n = 0 ; n < bytes_count; n++) {
+               printf("%x\n", bytes[n] & 0xff);
+             }
+             for (int n = 0; n < bytes_count; n++) {
+              function_context->code[function_context->pc++] = bytes[n]; 
+             }
            }
            // emit_mov_constant(anfs-> 
          }
       break;  
     }
   }  
+}
+
+int compile_stub(int function_id) {
+  struct Function * function = CODEGEN_CONTEXT->user_functions[function_id];    
+  printf("Calling compile of user function\n");
+}
+
+int codegen(struct ANF *anfs) {
+  struct CodeGenContext * codegen_context = malloc(sizeof(struct CodeGenContext*));
+  anfs->codegen_context = codegen_context;
+  /** Set up address of codegen context so we can find function to compile */
+  CODEGEN_CONTEXT = codegen_context;
+  struct Function ** global_functions = malloc(sizeof(struct Function*));
+  int global_function_length = 0;
+  struct Function * printf_function = malloc(sizeof(struct Function));
+  printf_function->name = "printf";
+  global_functions[global_function_length++] = printf_function;
+  codegen_context->global_function_length = global_function_length;
+  printf_function->code = malloc(sizeof(char) * 4);
+  printf_function->code[0] = 0xde;
+  printf_function->code[1] = 0xfe;
+  printf_function->code[2] = 0xff;
+  printf_function->code[3] = 0xff;
+  printf_function->compiled = 1;
+  codegen_context->global_functions = global_functions; 
+  codegen_context->user_functions = anfs->functions; 
+  codegen_context->function_length = anfs->function_length;
+   
+ 
+  for (int x = 0 ; x < anfs->function_length; x++) { 
+    printf("generating code region for function %s %d\n", anfs->functions[x]->name, getpagesize());
+    struct FunctionContext * function_context = malloc(sizeof(struct FunctionContext));
+    char *write_region = mmap(NULL,
+            getpagesize(),
+            PROT_READ | PROT_WRITE,
+            MAP_SHARED | MAP_ANONYMOUS,
+            -1,
+            0);
+     if (write_region == NULL) {
+       error_at_line(-ENOMEM, errno, __FILE__, __LINE__, "couldn't allocate\n");
+     }
+     function_context->code = write_region;
+     anfs->functions[x]->code = write_region;
+     anfs->functions[x]->context = function_context;
+     write_region[function_context->pc++] = 0x55;
+     writecode(codegen_context, function_context, anfs->functions[x]->anf);
+     write_region[function_context->pc++] = 0x5d; 
+     write_region[function_context->pc++] = 0xc3; 
+     mprotect(write_region, getpagesize(), PROT_READ | PROT_EXEC);
+     for (int n = 0 ; n < 100; n++) {
+       if (n % 8 == 0) { printf("\n"); }
+       printf("%x ", function_context->code[n] & 0xff);
+     }
+  }
+  char * main_write_region = mmap(NULL,
+       getpagesize(),
+       PROT_READ | PROT_WRITE,
+       MAP_SHARED | MAP_ANONYMOUS,
+       -1,
+       0);
+  
+  if (main_write_region == NULL) {
+    error_at_line(-ENOMEM, errno, __FILE__, __LINE__, "couldn't allocate\n");
+  }
+  struct FunctionContext * main_function_context = malloc(sizeof(struct FunctionContext));
+  codegen_context->main_function_context = main_function_context;
+  main_function_context->code = main_write_region;
+  
+  printf("GENERATING 55\n");
+  main_write_region[main_function_context->pc++] = 0x55; 
+  writecode(codegen_context, main_function_context, anfs->anf);
+
+  main_write_region[main_function_context->pc++] = 0x5d; 
+  main_write_region[main_function_context->pc++] = 0xc3;
+  mprotect(main_write_region, getpagesize(), PROT_READ | PROT_EXEC);
+  printf("Main machine code\n");
+  for (int n = 0 ; n < 100; n++) {
+    if (n % 8 == 0) { printf("\n"); }
+    printf("%x ", main_write_region[n] & 0xff);
+  }
+  printf("\n");
 }
 #define BINOP 0
 #define MULTIARY 1
@@ -1561,6 +1701,10 @@ int main(int argc, char *argv[])
     }
     
     machine_code(anfs);
+    int (*jmp_func)(void) = (void *) anfs->codegen_context->main_function_context->code;
+
+    printf("Executing machine code at %p\n", jmp_func);
+    printf("%x\n", jmp_func());
   }
 
   /*for (size_t i = 0; buffer[i * 2 + 1] != '\0'; i++) {
