@@ -18,6 +18,9 @@ clean: $(binaries)
 
 make: $(binaries) $(binaries_c)
 	gcc jitcompiler.c -o jitcompiler -g -l:libpcre2-8.a -I pcre2-10.42/
+inspect:
+	objdump -b binary -Mintel,x86-64 -D main.bin -m i386
+
 
 
 

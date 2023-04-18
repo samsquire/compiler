@@ -49,6 +49,7 @@ It is barebones and a toy.
 #include <fcntl.h>
 #include <sys/stat.h>
 
+int compile_stub(int function_id);
 
 struct hashmap_key {
   char key[1024];
@@ -205,6 +206,7 @@ struct ANF {
 
 struct Function {
   char * name;
+  int id;
   struct Parameter **parameters;
   int parameter_length;
   int expression_length;
@@ -215,6 +217,15 @@ struct Function {
   char * code;
   struct FunctionContext *context;
   int compiled;
+  struct Callsite ** callsites;
+  int callsite_length;
+  int global;
+};
+
+struct Callsite {
+  struct Function * function; 
+  struct FunctionContext * function_context; 
+  int pc;
 };
 
 struct Expression {
@@ -885,6 +896,9 @@ struct ParseResult * continue_parse(
     case 7572387384277067: // case function
       char * function_name = gettok(parse_result, "functionbodybegin");
       struct Function *function = malloc(sizeof(struct Function));
+      struct Callsite **callsites = calloc(100, sizeof(struct Callsite*));
+      function->callsites = callsites;
+      function->parameter_length = 0;
       parse_result->functions[parse_result->function_length] = function;
       parse_result->function_length++;
       struct Parameter **parameters = calloc(10, sizeof(struct Parameter*));
@@ -912,6 +926,7 @@ struct ParseResult * continue_parse(
         struct Parameter *parameter = malloc(sizeof(struct Parameter));
         parameter->type = type;
         parameter->name = name;
+        printf("there are %d parameters\n", function->parameter_length);
         parameters[function->parameter_length++] = parameter;
 
         memcpy(before, parse_result->last_char, 2); 
@@ -1055,6 +1070,9 @@ struct ANF * normalform(struct ParseResult *parse_result) {
   struct NormalForm * anf = malloc(sizeof(struct NormalForm));  
   result->anf = anf; 
   result->functions = parse_result->functions;
+  for (int x = 0 ; x < parse_result->function_length; x++) {
+    parse_result->functions[x]->id = x;
+  }
   result->function_length = parse_result->function_length;
 
   struct Expression ** expressions = calloc(100, sizeof(struct Expression*));  
@@ -1117,40 +1135,75 @@ int writecode(struct CodeGenContext * context, struct FunctionContext * function
          function_context->code[function_context->pc++] = 0x48; 
          function_context->code[function_context->pc++] = 0x89; 
          function_context->code[function_context->pc++] = 0xe5; 
-         // load string
-         function_context->code[function_context->pc++] = 0x48; 
-         function_context->code[function_context->pc++] = 0xbf; 
-         char * start = function_context->code + function_context->pc; 
-         char * address = malloc(sizeof(char) * 8);
-          
-         address = arg1->stringvalue;
-         printf("%p %p relative pointer %ld\n", arg1->stringvalue, address, (long) address);
-         memcpy(start, &address, 8);
-         function_context->pc += 8;
-         function_context->code[function_context->pc++] = 0x48; 
-         function_context->code[function_context->pc++] = 0xb8; 
-
-         char * start2 = function_context->code + function_context->pc; 
-         char * address2 = malloc(sizeof(char) * 8);
-          
-         address2 = function->code;
-         printf("%p %p relative pointer %ld\n", function->code, address2, (long) address2);
-         memcpy(start2, &address2, 8);
-         function_context->pc += 8;
-         function_context->code[function_context->pc++] = 0x48; 
           
           
          if (function->compiled == 1) {
-         
-           for (int n = 0 ; n < sizeof(char) * 4; n++) {
-             // method_address[method_address_count++] = function->code[n];
+           if (function->global == 1) {
+             // load string
+             function_context->code[function_context->pc++] = 0x48; 
+             function_context->code[function_context->pc++] = 0xbf; 
+             char * start = function_context->code + function_context->pc; 
+             char * address = malloc(sizeof(char) * 8);
+              
+             address = arg1->stringvalue;
+             printf("%p %p relative pointer %ld\n", arg1->stringvalue, address, (long) address);
+             memcpy(start, &address, 8);
+             function_context->pc += 8;
+             // jump location
+             function_context->code[function_context->pc++] = 0x48; 
+             function_context->code[function_context->pc++] = 0xb8; 
+
+             char * start2 = function_context->code + function_context->pc; 
+             char * address2 = malloc(sizeof(char) * 8);
+              
+             address2 = function->code;
+             printf("%p %p relative pointer %ld\n", function->code, address2, (long) address2);
+             memcpy(start2, &address2, 8);
+             function_context->pc += 8;
+             function_context->code[function_context->pc++] = 0x48; 
+           
+             for (int n = 0 ; n < sizeof(char) * 4; n++) {
+               // method_address[method_address_count++] = function->code[n];
+             }
+             for (int n = 0 ; n < sizeof(char) * 4; n++) {
+               method_bytes[method_ins_count++] = method_address[n];
+             }
+             for (int i = 0; i < call_bytes_length; i++) {
+               function_context->code[function_context->pc++] = method_bytes[i]; 
+             } 
            }
-           for (int n = 0 ; n < sizeof(char) * 4; n++) {
-             method_bytes[method_ins_count++] = method_address[n];
-           }
-           for (int i = 0; i < call_bytes_length; i++) {
-             function_context->code[function_context->pc++] = method_bytes[i]; 
-           } 
+         } else {
+           function_context->code[function_context->pc++] = 0x48; 
+           function_context->code[function_context->pc++] = 0xbf; 
+           char * start = function_context->code + function_context->pc; 
+           char * address = malloc(sizeof(char) * 8);
+            
+           address = (char*)function->id;
+           printf("%p %p creating function id %ld\n", arg1->stringvalue, address, (long) address);
+           memcpy(start, &address, 8);
+           function_context->pc += 8;
+
+           function_context->code[function_context->pc++] = 0x49; 
+           function_context->code[function_context->pc++] = 0xbb; 
+           char * compile_stub_start = function_context->code + function_context->pc; 
+           char * compile_address = malloc(sizeof(char) * 8);
+            
+           compile_address = (char*)compile_stub;
+           printf("%p creating function stub %ld\n", compile_address, (long) compile_address);
+           memcpy(compile_stub_start, &compile_address, 8);
+
+           struct Callsite *callsite = malloc(sizeof(struct Callsite));
+           callsite->pc = function_context->pc;
+           callsite->function = function;
+           callsite->function_context = function_context;
+           function->callsites[function->callsite_length++] = callsite; 
+
+           function_context->pc += 8;
+            
+           function_context->code[function_context->pc++] = 0x41; 
+           function_context->code[function_context->pc++] = 0xff; 
+           function_context->code[function_context->pc++] = 0xd3; 
+
          }
          break;
       case ADD:
@@ -1227,10 +1280,38 @@ int writecode(struct CodeGenContext * context, struct FunctionContext * function
     }
   }  
 }
+int dump_machine_code(char * name, char * code) {
+  printf("%s machine code\n", name);
+  for (int n = 0 ; n < 100; n++) {
+    if (n % 8 == 0) { printf("\n"); }
+    printf("%x ", code[n] & 0xff);
+  }
 
+}
 int compile_stub(int function_id) {
   struct Function * function = CODEGEN_CONTEXT->user_functions[function_id];    
   printf("Calling compile of user function\n");
+  mprotect(function->context->code, getpagesize(), PROT_READ | PROT_EXEC | PROT_WRITE);
+  writecode(CODEGEN_CONTEXT, function->context, function->anf);
+  mprotect(function->context->code, getpagesize(), PROT_READ | PROT_EXEC);
+  printf("Patching callsites\n");  
+  char * address = malloc(sizeof(char) * 8);
+  address = function->code;
+  printf("Function %s compiled to %p there are %d callsites\n", function->name, function->code, function->callsite_length);
+  for (int x = 0 ; x < function->callsite_length; x++) {
+    printf("%d\n", x);
+    struct Callsite *callsite = function->callsites[x];
+    char * start = callsite->function_context->code + callsite->pc; 
+    mprotect(callsite->function_context->code, getpagesize(), PROT_READ | PROT_EXEC | PROT_WRITE);
+    printf("Need to patch %p %d with %p %p\n", callsite->function_context->code, callsite->pc, function->code, start);
+    memcpy(start, &address, 8);
+    mprotect(callsite->function_context->code, getpagesize(), PROT_READ | PROT_EXEC);
+    printf("SUCCESS Patching callsite to %d\n", callsite->pc);
+  }
+  char name[100]; 
+  sprintf(name, "Lazy compilation %s", function->name);
+  dump_machine_code(name, function->code);
+  dump_machine_code("Main method again", CODEGEN_CONTEXT->main_function_context->code);
 }
 
 int codegen(struct ANF *anfs) {
@@ -1243,6 +1324,7 @@ int codegen(struct ANF *anfs) {
   int global_function_length = 0;
   struct Function * printf_function = malloc(sizeof(struct Function));
   printf_function->name = "printf";
+  printf_function->global = 1;
   global_functions[global_function_length++] = printf_function;
   codegen_context->global_function_length = global_function_length;
   printf_function->code = malloc(sizeof(char) * 4);
@@ -1299,11 +1381,7 @@ int codegen(struct ANF *anfs) {
   main_write_region[main_function_context->pc++] = 0x5d; 
   main_write_region[main_function_context->pc++] = 0xc3;
   mprotect(main_write_region, getpagesize(), PROT_READ | PROT_EXEC);
-  printf("Main machine code\n");
-  for (int n = 0 ; n < 100; n++) {
-    if (n % 8 == 0) { printf("\n"); }
-    printf("%x ", main_write_region[n] & 0xff);
-  }
+  dump_machine_code("Main", main_write_region);
   FILE * fp = fopen("main.bin", "wb");  
   fwrite(main_function_context->code, 100, 1, fp);
   fflush(fp);
