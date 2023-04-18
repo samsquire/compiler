@@ -240,3 +240,7 @@ call compile
 Create an executable buffer for each function.
 
 Then rewrite the compiled data buffer for that function with the compiled machine code.
+
+# Credits
+
+* playX from r/programminglanguages discord in backend
