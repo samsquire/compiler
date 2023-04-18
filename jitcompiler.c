@@ -46,6 +46,8 @@ It is barebones and a toy.
 #define PCRE2_CODE_UNIT_WIDTH 8
 #include <pcre2.h>
 #define MAX_SIZE 1024
+#include <fcntl.h>
+#include <sys/stat.h>
 
 
 struct hashmap_key {
@@ -198,6 +200,7 @@ struct ANF {
   struct NormalForm *anf;
   int function_length;
   struct CodeGenContext * codegen_context;
+  long long heap_start;
 };
 
 struct Function {
@@ -270,6 +273,7 @@ struct CodeGenContext {
   int function_length;
   int global_function_length;
   struct FunctionContext * main_function_context;
+  long long heap_start;
 };
 struct CodeGenContext * CODEGEN_CONTEXT;
 struct FunctionContext {
@@ -1087,16 +1091,16 @@ struct Function * resolve_name(struct CodeGenContext * context, char * function_
   }
 }
 
-
 int writecode(struct CodeGenContext * context, struct FunctionContext * function_context, struct NormalForm * anf) {
   for (int x = 0 ; x < anf->assignment_pair->assignment_length; x++) {
     switch (anf->assignment_pair->assignments[x].expression->type) {
       case METHOD_CALL:
          printf("Generating method call\n"); 
-         int call_bytes_length = 5;
+         int call_bytes_length = 2;
          char * method_bytes = malloc(call_bytes_length);
          int method_ins_count = 0;
-         method_bytes[method_ins_count++] = 0xe8; 
+         method_bytes[method_ins_count++] = 0xff; 
+         method_bytes[method_ins_count++] = 0xd0; 
          char * method_address = malloc(sizeof(char) * 4);
          int method_address_count = 0;
          struct Expression * method_call_expression = anf->assignment_pair->assignments[x].expression;
@@ -1106,10 +1110,40 @@ int writecode(struct CodeGenContext * context, struct FunctionContext * function
          printf("%s\n", method_name);
          
          printf("Method call to function %s at %p\n", method_name, function->code);
+
+         struct Expression * arg1 = anf->assignment_pair->assignments[x].expression->exps[0]->expressions[1];
+         printf("%s %p\n", arg1->stringvalue, arg1->stringvalue);
+         // push rsp rbp
+         function_context->code[function_context->pc++] = 0x48; 
+         function_context->code[function_context->pc++] = 0x89; 
+         function_context->code[function_context->pc++] = 0xe5; 
+         // load string
+         function_context->code[function_context->pc++] = 0x48; 
+         function_context->code[function_context->pc++] = 0xbf; 
+         char * start = function_context->code + function_context->pc; 
+         char * address = malloc(sizeof(char) * 8);
+          
+         address = arg1->stringvalue;
+         printf("%p %p relative pointer %ld\n", arg1->stringvalue, address, (long) address);
+         memcpy(start, &address, 8);
+         function_context->pc += 8;
+         function_context->code[function_context->pc++] = 0x48; 
+         function_context->code[function_context->pc++] = 0xb8; 
+
+         char * start2 = function_context->code + function_context->pc; 
+         char * address2 = malloc(sizeof(char) * 8);
+          
+         address2 = function->code;
+         printf("%p %p relative pointer %ld\n", function->code, address2, (long) address2);
+         memcpy(start2, &address2, 8);
+         function_context->pc += 8;
+         function_context->code[function_context->pc++] = 0x48; 
+          
+          
          if (function->compiled == 1) {
          
            for (int n = 0 ; n < sizeof(char) * 4; n++) {
-             method_address[method_address_count++] = function->code[n];
+             // method_address[method_address_count++] = function->code[n];
            }
            for (int n = 0 ; n < sizeof(char) * 4; n++) {
              method_bytes[method_ins_count++] = method_address[n];
@@ -1202,6 +1236,7 @@ int compile_stub(int function_id) {
 int codegen(struct ANF *anfs) {
   struct CodeGenContext * codegen_context = malloc(sizeof(struct CodeGenContext*));
   anfs->codegen_context = codegen_context;
+  codegen_context->heap_start = anfs->heap_start;
   /** Set up address of codegen context so we can find function to compile */
   CODEGEN_CONTEXT = codegen_context;
   struct Function ** global_functions = malloc(sizeof(struct Function*));
@@ -1211,10 +1246,7 @@ int codegen(struct ANF *anfs) {
   global_functions[global_function_length++] = printf_function;
   codegen_context->global_function_length = global_function_length;
   printf_function->code = malloc(sizeof(char) * 4);
-  printf_function->code[0] = 0xde;
-  printf_function->code[1] = 0xfe;
-  printf_function->code[2] = 0xff;
-  printf_function->code[3] = 0xff;
+  printf_function->code = (char*)printf; 
   printf_function->compiled = 1;
   codegen_context->global_functions = global_functions; 
   codegen_context->user_functions = anfs->functions; 
@@ -1272,6 +1304,10 @@ int codegen(struct ANF *anfs) {
     if (n % 8 == 0) { printf("\n"); }
     printf("%x ", main_write_region[n] & 0xff);
   }
+  FILE * fp = fopen("main.bin", "wb");  
+  fwrite(main_function_context->code, 100, 1, fp);
+  fflush(fp);
+  fclose(fp);
   printf("\n");
 }
 #define BINOP 0
@@ -1699,7 +1735,31 @@ int main(int argc, char *argv[])
     for (int x = 0 ; x < anfs->function_length; x++) {
       assignregisters(anfs->functions[x]->anf); 
     }
-    
+    FILE *mapsfd = fopen("/proc/self/maps", "r");
+    if(mapsfd == NULL) {
+        fprintf(stderr, "open() failed: %s.\n", strerror(errno));
+        exit(1);
+    }
+    char maps[BUFSIZ] = "";
+    if(read(fileno(mapsfd), maps, BUFSIZ) == -1){
+        fprintf(stderr, "read() failed: %s.\n", strerror(errno));
+        exit(1);
+    }
+    if(close(fileno(mapsfd)) == -1){
+        fprintf(stderr, "close() failed: %s.\n", strerror(errno));
+        exit(1);
+    }
+    long long heap_start = 0;
+    char*  line = strtok(maps, "\n");
+    while((line = strtok(NULL, "\n")) != NULL) {
+        if(strstr(line, "heap") != NULL) {
+            printf("\n\nfrom /proc/self/maps:\n%s\n", line);
+            sscanf(line, "%llx", &heap_start); 
+            break;
+        }
+    } 
+    printf("heap start is %llx\n", heap_start);
+    anfs->heap_start = heap_start;
     machine_code(anfs);
     int (*jmp_func)(void) = (void *) anfs->codegen_context->main_function_context->code;
 
