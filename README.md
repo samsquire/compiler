@@ -5,7 +5,7 @@ This repository is where I work on compiler development.
 I have two compilers:
 
 * an toy amd64 compiler written in Python
-* the beginnings of an amd64 JIT compiler written in C
+* an amd64 JIT compiler written in C that does lazy code generation
 
 # amd64 compiler written in Python
 
