@@ -216,6 +216,10 @@ instruction 6 func println falls in range of Hello world %d
 
 # JIT compiler written in C
 
+Lazy compilation works.
+
+# older notes
+
 I have generated ANF and virtual register allocation information. The compiler reads syntax that resembles the following and turns it into an AST and ANF.
 
 ```
