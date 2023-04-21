@@ -1209,9 +1209,9 @@ int writecode(struct CodeGenContext * context, struct FunctionContext * function
       case ADD:
          printf("Generating add\n"); 
          int add_size_of_immediate = sizeof(char) * sizeof(int);
-         int add_bytes_count = 4 * sizeof(char) + add_size_of_immediate;
-         char * add_bytes = malloc(add_bytes_count);
-         int add_byte_count = 0;
+         int add_bytes_length = 3 * sizeof(char);
+         char * add_bytes = malloc(add_bytes_length);
+         int add_bytes_count = 0;
 
          struct Expression * left = anf->expressions[x]->exps[0]->expressions[0];
          struct Expression * right = anf->expressions[x]->exps[0]->expressions[1];
@@ -1220,8 +1220,139 @@ int writecode(struct CodeGenContext * context, struct FunctionContext * function
          // function_context->code[function_context->pc++] = 0x48; 
          printf("Add instruction left is %s\n", register_left); 
          printf("Right instruction right is %s\n", register_right); 
-         printf("my register is %s\n", anf->expressions[x]->chosen_register);
+         char * destination_register = anf->expressions[x]->chosen_register;
+         printf("my register is %s\n", destination_register);
+         
+         if (strcmp(register_left, destination_register) == 0) {
+           printf("register left is destination register");
+           register_left = register_right;
+         }
+         
+         add_bytes[add_bytes_count++] = 0x48; 
+         add_bytes[add_bytes_count++] = 0x01; 
           
+         unsigned long reg_left = hash(destination_register);
+         unsigned long reg_right = hash(register_left);
+         switch (reg_right) {
+           case 193504464: // case rax 
+             switch (reg_left) {
+               case 193504497: // case rbx 
+                 add_bytes[2] = 0xd8;
+               break;
+               case 193504530: // case rcx 
+                 add_bytes[2] = 0xc8;
+               break;
+               case 193504563: // case rdx 
+                 add_bytes[2] = 0xd0;
+               break;
+               case 193505043: // case rsi 
+                 add_bytes[2] = 0xf0;
+               break;
+               case 193504548: // case rdi 
+                 add_bytes[2] = 0xf8;
+               break;
+             }
+           break;
+           case 193504497: // case rbx 
+             switch (reg_left) {
+               case 193504464: // case rax 
+                 add_bytes[2] = 0xc3;
+               break;
+               case 193504530: // case rcx 
+                 add_bytes[2] = 0xcb;
+               break;
+               case 193504563: // case rdx 
+                 add_bytes[2] = 0xd3;
+               break;
+               case 193505043: // case rsi 
+                 add_bytes[2] = 0xf3;
+               break;
+               case 193504548: // case rdi 
+                 add_bytes[2] = 0xfb;
+               break;
+             }
+           break;
+           case 193504530: // case rcx 
+             switch (reg_left) {
+               case 193504464: // case rax 
+                 add_bytes[2] = 0xc1;
+               break;
+               case 193504497: // case rbx 
+                 add_bytes[2] = 0xd9;
+               break;
+               case 193504563: // case rdx 
+                 add_bytes[2] = 0xd1;
+               break;
+               case 193505043: // case rsi 
+                 add_bytes[2] = 0xf1;
+               break;
+               case 193504548: // case rdi 
+                 add_bytes[2] = 0xf9;
+               break;
+             }
+           break;
+           case 193504563: // case rdx 
+             switch (reg_left) {
+               case 193504464: // case rax 
+                 add_bytes[2] = 0xc2;
+               break;
+               case 193504497: // case rbx 
+                 add_bytes[2] = 0xda;
+               break;
+               case 193504530: // case rcx 
+                 add_bytes[2] = 0xca;
+               break;
+               case 193505043: // case rsi 
+                 add_bytes[2] = 0xf2;
+               break;
+               case 193504548: // case rdi 
+                 add_bytes[2] = 0xfa;
+               break;
+             }
+           break;
+           case 193505043: // case rsi 
+             switch (reg_left) {
+               case 193504464: // case rax 
+                 add_bytes[2] = 0xc6;
+               break;
+               case 193504497: // case rbx 
+                 add_bytes[2] = 0xde;
+               break;
+               case 193504530: // case rcx 
+                 add_bytes[2] = 0xce;
+               break;
+               case 193504563: // case rdx 
+                 add_bytes[2] = 0xd6;
+               break;
+               case 193504548: // case rdi 
+                 add_bytes[2] = 0xfe;
+               break;
+             }
+           break;
+           case 193504548: // case rdi 
+             switch (reg_left) {
+               case 193504464: // case rax 
+                 add_bytes[2] = 0xc7;
+               break;
+               case 193504497: // case rbx 
+                 add_bytes[2] = 0xdf;
+               break;
+               case 193504530: // case rcx 
+                 add_bytes[2] = 0xcf;
+               break;
+               case 193504563: // case rdx 
+                 add_bytes[2] = 0xd7;
+               break;
+               case 193505043: // case rsi 
+                 add_bytes[2] = 0xf7;
+               break;
+             }
+           break;
+         }
+          
+         for (int n = 0; n < add_bytes_length; n++) {
+            function_context->code[function_context->pc++] = add_bytes[n]; 
+         }
          break;  
       case IDENTIFIER: 
          if (anf->expressions[x]->tag != IS_AST_METADATA) {
@@ -1321,6 +1452,13 @@ int compile_stub(int function_id) {
   sprintf(name, "Lazy compilation %s", function->name);
   dump_machine_code(name, function->code);
   dump_machine_code("Main method again", CODEGEN_CONTEXT->main_function_context->code);
+
+  char filename[100]; 
+  sprintf(filename, "%s.bin", function->name);
+  FILE * fp = fopen(filename, "wb");  
+  fwrite(function->code, 100, 1, fp);
+  fflush(fp);
+  fclose(fp);
 }
 
 int codegen(struct ANF *anfs) {
@@ -1706,6 +1844,13 @@ struct RangePair * liveranges(struct NormalForm * anf, struct AssignmentPair *as
           end_position_a = x;
           end_assignment = &assignment_pair->assignments[x];
         }
+        for (int y = 0 ; y <  assignment_pair->assignments[x].reference_length; y++) {
+          if (strcmp(assignment_pair->assignments[x].references[y], search_target) == 0) {
+            end_position_a = x;
+            end_assignment = &assignment_pair->assignments[x];
+          }
+           
+        }
       }
      struct Range * range = malloc(sizeof(struct Range));
      range->start_position = start_position_a;
@@ -1741,12 +1886,19 @@ int assignrealregisters(struct NormalForm *anf, struct RangePair *range_pair, st
   for (int instruction = 0; instruction < assignment_pair->assignment_length; instruction++) {
     for (int r = 0 ; r < range_pair->range_length; r++) {
         if (instruction >= range_pair->ranges[r]->start_position && instruction <= range_pair->ranges[r]->end_position) {
-          printf("Instruction %s <- %s appears in range of %d-%d\n", assignment_pair->assignments[instruction].variable, assignment_pair->assignments[instruction].text, range_pair->ranges[r]->start_position, range_pair->ranges[r]->end_position);  
+          printf("Instruction %s %s appears in range of %d-%d\n", assignment_pair->assignments[instruction].variable, assignment_pair->assignments[instruction].text, range_pair->ranges[r]->start_position, range_pair->ranges[r]->end_position);  
           
           struct hashmap_value *lookup = get_hashmap(template_variables, range_pair->ranges[r]->variable);
+          if (lookup->set == 1 && lookup->value != 0 && instruction == range_pair->ranges[r]->end_position) {
+
+            printf("Register %s is free\n", (char*) lookup->value); 
+            previousassignments[assignment_stack_position] = (char*) lookup->value;
+            assignment_stack_position++;
+            lookup->value = 0;
+            lookup->set = 0;
+          }
           if (lookup->value == 0) {
             char * chosen_register = previousassignments[assignment_stack_position];
-            printf("Chosen register is %s %d\n", chosen_register, assignment_stack_position);
             set_hashmap(template_variables, range_pair->ranges[r]->variable, (uintptr_t) chosen_register, strlen(chosen_register));
             printf("Assigned register %s to %s <- %s\n", chosen_register, assignment_pair->assignments[instruction].variable, assignment_pair->assignments[instruction].text); 
             assignment_pair->assignments[instruction].chosen_register = chosen_register;
@@ -1754,13 +1906,6 @@ int assignrealregisters(struct NormalForm *anf, struct RangePair *range_pair, st
             assignment_stack_position--;
           }
           //printf("%p %d %d\n", (char*)lookup->value, instruction, range_pair->ranges[r]->end_position);
-          else if (lookup->set == 1 && lookup->value != 0 && instruction == range_pair->ranges[r]->end_position) {
-            printf("Register %s is free\n", (char*) lookup->value); 
-            previousassignments[assignment_stack_position] = (char*) lookup->value;
-            assignment_stack_position++;
-            lookup->value = 0;
-            lookup->set = 0;
-          }
         }
       } 
   }

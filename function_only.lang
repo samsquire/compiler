@@ -1,5 +1,5 @@
 function x(int arg, int anotherarg) {
-  printf("From compiled function", 3)
+  printf("From compiled function", 3);
   return arg + anotherarg;
 }
 x(1);
