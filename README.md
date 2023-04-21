@@ -7,6 +7,8 @@ I have two compilers:
 * an toy amd64 compiler written in Python
 * an amd64 JIT compiler written in C that does lazy code generation
 
+Scroll down.
+
 # amd64 compiler written in Python
 
 a compiler backend for amd64 x86_64
