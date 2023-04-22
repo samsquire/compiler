@@ -220,6 +220,8 @@ instruction 6 func println falls in range of Hello world %d
 
 Lazy compilation works.
 
+Addition instruction is implemented but parameter passing to functions is not implemented yet.
+
 # running instructions
 
 * run make
@@ -231,9 +233,12 @@ printf("value: %d\n", 1 + talker(6, 7));
 printf("value2: %d\n", talker(8, 9));
 ```
 
+Don't expect these functions to return correct answers, just that lazy compilation is working.
 
 * try ./jitcompiler program2.lang
 * try ./jitcompiler function_only.lang
+
+Inspect the hex64 disassembly with `make inspect`
 
 # older notes
 
