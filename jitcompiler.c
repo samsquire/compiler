@@ -92,6 +92,7 @@ struct Range {
   int end_position; 
   char * variable;
   int variable_length;
+  char * chosen_register;
 };
 struct AssignmentPair  {
   struct Assignment *assignments;
@@ -1210,6 +1211,7 @@ int writecode(struct CodeGenContext * context, struct FunctionContext * function
          printf("Generating add\n"); 
          int add_size_of_immediate = sizeof(char) * sizeof(int);
          int add_bytes_length = 3 * sizeof(char);
+         printf("%d add bytes length\n", add_bytes_length);
          char * add_bytes = malloc(add_bytes_length);
          int add_bytes_count = 0;
 
@@ -1455,8 +1457,8 @@ int compile_stub(int function_id) {
 
   char filename[100]; 
   sprintf(filename, "%s.bin", function->name);
-  FILE * fp = fopen(filename, "wb");  
-  fwrite(function->code, 100, 1, fp);
+  FILE * fp = fopen(filename, "w+b");  
+  fwrite(function->code, 150, 1, fp);
   fflush(fp);
   fclose(fp);
 }
@@ -1529,8 +1531,8 @@ int codegen(struct ANF *anfs) {
   main_write_region[main_function_context->pc++] = 0xc3;
   mprotect(main_write_region, getpagesize(), PROT_READ | PROT_EXEC);
   dump_machine_code("Main", main_write_region);
-  FILE * fp = fopen("main.bin", "wb");  
-  fwrite(main_function_context->code, 100, 1, fp);
+  FILE * fp = fopen("main.bin", "w+b");  
+  fwrite(main_function_context->code, 150, 1, fp);
   fflush(fp);
   fclose(fp);
   printf("\n");
@@ -1540,6 +1542,9 @@ int codegen(struct ANF *anfs) {
 #define UNARY 2
 struct AssignmentPair * assignregisters(struct NormalForm *anf) {
   struct Assignment * assignments = calloc(100, sizeof(struct Assignment));
+  for (int x = 0 ; x < 100; x++) {
+    assignments[x].chosen_register = NULL;
+  }
   int assignment_counter = 0; 
   int counter = 0; 
   
@@ -1879,6 +1884,7 @@ int assignrealregisters(struct NormalForm *anf, struct RangePair *range_pair, st
   }
   int assignment_stack_position = register_count - 1;
   struct hashmap *template_variables = malloc(sizeof(struct hashmap)); 
+  struct hashmap *registers = malloc(sizeof(struct hashmap)); 
    
   for (int x = 0 ; x < range_pair->range_length; x++) {
     set_hashmap(template_variables, range_pair->ranges[x]->variable, (uintptr_t) 0, range_pair->ranges[x]->variable_length);
@@ -1886,23 +1892,25 @@ int assignrealregisters(struct NormalForm *anf, struct RangePair *range_pair, st
   for (int instruction = 0; instruction < assignment_pair->assignment_length; instruction++) {
     for (int r = 0 ; r < range_pair->range_length; r++) {
         if (instruction >= range_pair->ranges[r]->start_position && instruction <= range_pair->ranges[r]->end_position) {
-          printf("Instruction %s %s appears in range of %d-%d\n", assignment_pair->assignments[instruction].variable, assignment_pair->assignments[instruction].text, range_pair->ranges[r]->start_position, range_pair->ranges[r]->end_position);  
+          printf("Instruction %s %s appears in range of %d-%d\n", range_pair->ranges[r]->variable, assignment_pair->assignments[instruction].text, range_pair->ranges[r]->start_position, range_pair->ranges[r]->end_position);  
           
           struct hashmap_value *lookup = get_hashmap(template_variables, range_pair->ranges[r]->variable);
-          if (lookup->set == 1 && lookup->value != 0 && instruction == range_pair->ranges[r]->end_position) {
-
-            printf("Register %s is free\n", (char*) lookup->value); 
-            previousassignments[assignment_stack_position] = (char*) lookup->value;
+          
+          if (instruction == range_pair->ranges[r]->end_position && range_pair->ranges[r]->chosen_register != NULL) {
+            printf("Register %s is free\n", (char*) range_pair->ranges[r]->chosen_register); 
+            previousassignments[assignment_stack_position + 1] = (char*) range_pair->ranges[r]->chosen_register;
             assignment_stack_position++;
             lookup->value = 0;
             lookup->set = 0;
           }
-          if (lookup->value == 0) {
+          printf("assignment position %d\n", assignment_stack_position);
+          if (range_pair->ranges[r]->chosen_register == NULL) {
             char * chosen_register = previousassignments[assignment_stack_position];
             set_hashmap(template_variables, range_pair->ranges[r]->variable, (uintptr_t) chosen_register, strlen(chosen_register));
             printf("Assigned register %s to %s <- %s\n", chosen_register, assignment_pair->assignments[instruction].variable, assignment_pair->assignments[instruction].text); 
             assignment_pair->assignments[instruction].chosen_register = chosen_register;
             assignment_pair->assignments[instruction].expression->chosen_register = chosen_register;
+            range_pair->ranges[r]->chosen_register = chosen_register;
             assignment_stack_position--;
           }
           //printf("%p %d %d\n", (char*)lookup->value, instruction, range_pair->ranges[r]->end_position);
