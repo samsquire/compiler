@@ -220,6 +220,21 @@ instruction 6 func println falls in range of Hello world %d
 
 Lazy compilation works.
 
+# running instructions
+
+* run make
+```
+function talker(int a, int b) {
+  return a + b;
+}
+printf("value: %d\n", 1 + talker(6, 7));
+printf("value2: %d\n", talker(8, 9));
+```
+
+
+* try ./jitcompiler program2.lang
+* try ./jitcompiler function_only.lang
+
 # older notes
 
 I have generated ANF and virtual register allocation information. The compiler reads syntax that resembles the following and turns it into an AST and ANF.
