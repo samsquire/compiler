@@ -222,6 +222,8 @@ Lazy compilation works.
 
 Addition instruction is implemented but parameter passing to functions is not implemented yet.
 
+This uses [JIT compilation code jit.c](https://gist.github.com/martinjacobd/3ee56f3c7b7ce621034ec3ecbc8e13f1) from Martin Jacob https://gist.github.com/martinjacobd
+
 # running instructions
 
 * run make
