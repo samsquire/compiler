@@ -147,7 +147,7 @@ def liveranges(assignments):
       if search_target == assignments[position][3]:
         end_position_a = position
 
-    eprint("Variable {} appears {}-{}".format(variable,  start_position_a, end_position_a))
+    eprint("Variable {} appears {}-{} {}".format(variable,  start_position_a, end_position_a, variable_data))
     ranges.append((variable, start_position_a, end_position_a, variable_data[1], variable_data[2]))
 
   
