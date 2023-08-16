@@ -13,7 +13,7 @@ Scroll down.
 
 a compiler backend for amd64 x86_64
 
-[This is barebones toy proof of implementation](https://replit.com/@Chronological/Compiler2#main.py) but my backend can compile the following AST. It has no name, it's for learning assembly and compilation development. I hope it shall be useful to you.
+[This is barebones toy proof of implementation (replit link)](https://replit.com/@Chronological/Compiler3#main.py) (or main.py in this repository) but my backend can compile the following AST. It has no name, it's for learning assembly and compilation development. I hope it shall be useful to you.
 
 ```
     program = Main(
