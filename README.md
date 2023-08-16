@@ -5,7 +5,7 @@ This repository is where I work on compiler development.
 I have two compilers:
 
 * an toy amd64 compiler written in Python
-* an amd64 JIT compiler written in C that does lazy code generation
+* an amd64 JIT compiler written in C that does lazy code generation [Jump to section](https://github.com/samsquire/compiler/blob/main/README.md#jit-compiler-written-in-c)
 
 Scroll down.
 
