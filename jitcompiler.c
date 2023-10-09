@@ -488,7 +488,7 @@ char * _gettok(struct ParseResult *parse_result, char * caller) {
       }
       identifier[count++] = parse_result->last_char[0];
       // printf("%s [%s] Matched pattern for identifier [%s] %s\n", regex, parse_result->last_char, identifier, subject); 
-      free(parse_result->last_char); 
+      // free(parse_result->last_char); 
       parse_result->last_char = charget(parse_result);
       subject = (PCRE2_SPTR)parse_result->last_char;
     }
