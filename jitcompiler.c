@@ -469,7 +469,6 @@ char * _gettok(struct ParseResult *parse_result, char * caller) {
 
 
     printf("%s\n", identifier);
-    pcre2_match_data_free(match_data);   /* Release memory used for the match */
 
     while (parse_result->end == 0 && (rc = pcre2_match(
         re,                   /* the compiled pattern */
@@ -492,6 +491,7 @@ char * _gettok(struct ParseResult *parse_result, char * caller) {
       parse_result->last_char = charget(parse_result);
       subject = (PCRE2_SPTR)parse_result->last_char;
     }
+    pcre2_match_data_free(match_data);   /* Release memory used for the match */
     printf("%d rc is\n", rc);
 
     if (parse_result->end == 1 && strcmp(parse_result->last_char, ")") != 0 && strcmp(parse_result->last_char, "\n") != 0) {
@@ -1166,7 +1166,7 @@ int writecode(struct CodeGenContext * context, struct FunctionContext * function
              for (int n = 0 ; n < sizeof(char) * 4; n++) {
                // method_address[method_address_count++] = function->code[n];
              }
-             for (int n = 0 ; n < sizeof(char) * 4; n++) {
+             for (int n = 0 ; n < call_bytes_length; n++) {
                method_bytes[method_ins_count++] = method_address[n];
              }
              for (int i = 0; i < call_bytes_length; i++) {
@@ -1993,7 +1993,7 @@ int main(int argc, char *argv[])
     length = ftell (f);
     fseek (f, 0, SEEK_SET);
     buffer = malloc(sizeof(char) * length + 1);
-    memset(buffer, '\0', length);
+    memset(buffer, '\0', length + 1);
     if (buffer)
     {
       fread (buffer, 1, length, f);
