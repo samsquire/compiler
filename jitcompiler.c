@@ -1133,9 +1133,9 @@ int writecode(struct CodeGenContext * context, struct FunctionContext * function
          struct Expression * arg1 = anf->assignment_pair->assignments[x].expression->exps[0]->expressions[1];
          printf("%s %p\n", arg1->stringvalue, arg1->stringvalue);
          // push rsp rbp
-         function_context->code[function_context->pc++] = 0x48; 
-         function_context->code[function_context->pc++] = 0x89; 
-         function_context->code[function_context->pc++] = 0xe5; 
+         // function_context->code[function_context->pc++] = 0x48; 
+         //function_context->code[function_context->pc++] = 0x89; 
+         // function_context->code[function_context->pc++] = 0xe5; 
           
           
          if (function->compiled == 1) {
@@ -1457,10 +1457,13 @@ int compile_stub(int function_id) {
 
   char filename[100]; 
   sprintf(filename, "%s.bin", function->name);
-  FILE * fp = fopen(filename, "w+b");  
+  FILE * fp = fopen(filename, "wb");  
   fwrite(function->code, 150, 1, fp);
   fflush(fp);
   fclose(fp);
+  int (*jmp_func)(void) = (void *) address;
+  jmp_func();
+  return 0;
 }
 
 int codegen(struct ANF *anfs) {
@@ -1531,7 +1534,7 @@ int codegen(struct ANF *anfs) {
   main_write_region[main_function_context->pc++] = 0xc3;
   mprotect(main_write_region, getpagesize(), PROT_READ | PROT_EXEC);
   dump_machine_code("Main", main_write_region);
-  FILE * fp = fopen("main.bin", "w+b");  
+  FILE * fp = fopen("main.bin", "wb");  
   fwrite(main_function_context->code, 150, 1, fp);
   fflush(fp);
   fclose(fp);
