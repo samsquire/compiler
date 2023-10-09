@@ -14,8 +14,8 @@ src/libpcre2_posix_la-pcre2posix.lo: src/pcre2posix.c \
  /usr/include/x86_64-linux-gnu/bits/endianness.h \
  /usr/include/x86_64-linux-gnu/bits/types/locale_t.h \
  /usr/include/x86_64-linux-gnu/bits/types/__locale_t.h \
- /usr/lib/gcc/x86_64-linux-gnu/11/include/limits.h \
- /usr/lib/gcc/x86_64-linux-gnu/11/include/syslimits.h \
+ /usr/lib/gcc/x86_64-linux-gnu/12/include/limits.h \
+ /usr/lib/gcc/x86_64-linux-gnu/12/include/syslimits.h \
  /usr/include/limits.h \
  /usr/include/x86_64-linux-gnu/bits/libc-header-start.h \
  /usr/include/x86_64-linux-gnu/bits/posix1_lim.h \
@@ -25,8 +25,8 @@ src/libpcre2_posix_la-pcre2posix.lo: src/pcre2posix.c \
  /usr/include/x86_64-linux-gnu/bits/posix2_lim.h \
  /usr/include/x86_64-linux-gnu/bits/xopen_lim.h \
  /usr/include/x86_64-linux-gnu/bits/uio_lim.h \
- /usr/lib/gcc/x86_64-linux-gnu/11/include/stddef.h /usr/include/stdio.h \
- /usr/lib/gcc/x86_64-linux-gnu/11/include/stdarg.h \
+ /usr/lib/gcc/x86_64-linux-gnu/12/include/stddef.h /usr/include/stdio.h \
+ /usr/lib/gcc/x86_64-linux-gnu/12/include/stdarg.h \
  /usr/include/x86_64-linux-gnu/bits/types/__fpos_t.h \
  /usr/include/x86_64-linux-gnu/bits/types/__mbstate_t.h \
  /usr/include/x86_64-linux-gnu/bits/types/__fpos64_t.h \
@@ -37,6 +37,7 @@ src/libpcre2_posix_la-pcre2posix.lo: src/pcre2posix.c \
  /usr/include/x86_64-linux-gnu/bits/stdio_lim.h \
  /usr/include/x86_64-linux-gnu/bits/floatn.h \
  /usr/include/x86_64-linux-gnu/bits/floatn-common.h \
+ /usr/include/x86_64-linux-gnu/bits/stdio2-decl.h \
  /usr/include/x86_64-linux-gnu/bits/stdio.h \
  /usr/include/x86_64-linux-gnu/bits/stdio2.h /usr/include/stdlib.h \
  /usr/include/x86_64-linux-gnu/bits/waitflags.h \
@@ -69,7 +70,7 @@ src/libpcre2_posix_la-pcre2posix.lo: src/pcre2posix.c \
  /usr/include/x86_64-linux-gnu/bits/strings_fortified.h \
  /usr/include/x86_64-linux-gnu/bits/string_fortified.h src/pcre2.h \
  /usr/include/inttypes.h \
- /usr/lib/gcc/x86_64-linux-gnu/11/include/stdint.h /usr/include/stdint.h \
+ /usr/lib/gcc/x86_64-linux-gnu/12/include/stdint.h /usr/include/stdint.h \
  /usr/include/x86_64-linux-gnu/bits/wchar.h \
  /usr/include/x86_64-linux-gnu/bits/stdint-uintn.h src/pcre2posix.h
 /usr/include/stdc-predef.h:
@@ -90,8 +91,8 @@ src/config.h:
 /usr/include/x86_64-linux-gnu/bits/endianness.h:
 /usr/include/x86_64-linux-gnu/bits/types/locale_t.h:
 /usr/include/x86_64-linux-gnu/bits/types/__locale_t.h:
-/usr/lib/gcc/x86_64-linux-gnu/11/include/limits.h:
-/usr/lib/gcc/x86_64-linux-gnu/11/include/syslimits.h:
+/usr/lib/gcc/x86_64-linux-gnu/12/include/limits.h:
+/usr/lib/gcc/x86_64-linux-gnu/12/include/syslimits.h:
 /usr/include/limits.h:
 /usr/include/x86_64-linux-gnu/bits/libc-header-start.h:
 /usr/include/x86_64-linux-gnu/bits/posix1_lim.h:
@@ -101,9 +102,9 @@ src/config.h:
 /usr/include/x86_64-linux-gnu/bits/posix2_lim.h:
 /usr/include/x86_64-linux-gnu/bits/xopen_lim.h:
 /usr/include/x86_64-linux-gnu/bits/uio_lim.h:
-/usr/lib/gcc/x86_64-linux-gnu/11/include/stddef.h:
+/usr/lib/gcc/x86_64-linux-gnu/12/include/stddef.h:
 /usr/include/stdio.h:
-/usr/lib/gcc/x86_64-linux-gnu/11/include/stdarg.h:
+/usr/lib/gcc/x86_64-linux-gnu/12/include/stdarg.h:
 /usr/include/x86_64-linux-gnu/bits/types/__fpos_t.h:
 /usr/include/x86_64-linux-gnu/bits/types/__mbstate_t.h:
 /usr/include/x86_64-linux-gnu/bits/types/__fpos64_t.h:
@@ -114,6 +115,7 @@ src/config.h:
 /usr/include/x86_64-linux-gnu/bits/stdio_lim.h:
 /usr/include/x86_64-linux-gnu/bits/floatn.h:
 /usr/include/x86_64-linux-gnu/bits/floatn-common.h:
+/usr/include/x86_64-linux-gnu/bits/stdio2-decl.h:
 /usr/include/x86_64-linux-gnu/bits/stdio.h:
 /usr/include/x86_64-linux-gnu/bits/stdio2.h:
 /usr/include/stdlib.h:
@@ -151,7 +153,7 @@ src/config.h:
 /usr/include/x86_64-linux-gnu/bits/string_fortified.h:
 src/pcre2.h:
 /usr/include/inttypes.h:
-/usr/lib/gcc/x86_64-linux-gnu/11/include/stdint.h:
+/usr/lib/gcc/x86_64-linux-gnu/12/include/stdint.h:
 /usr/include/stdint.h:
 /usr/include/x86_64-linux-gnu/bits/wchar.h:
 /usr/include/x86_64-linux-gnu/bits/stdint-uintn.h:

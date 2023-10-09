@@ -5,7 +5,7 @@ opcodes/add_rax:     file format elf64-x86-64
 Disassembly of section .text:
 
 0000000000001040 <_start>:
-    1040:	f3 0f 1e fa          	endbr64 
+    1040:	f3 0f 1e fa          	endbr64
     1044:	31 ed                	xor    %ebp,%ebp
     1046:	49 89 d1             	mov    %rdx,%r9
     1049:	5e                   	pop    %rsi
@@ -17,7 +17,7 @@ Disassembly of section .text:
     1056:	31 c9                	xor    %ecx,%ecx
     1058:	48 8d 3d ca 00 00 00 	lea    0xca(%rip),%rdi        # 1129 <main>
     105f:	ff 15 73 2f 00 00    	call   *0x2f73(%rip)        # 3fd8 <__libc_start_main@GLIBC_2.34>
-    1065:	f4                   	hlt    
+    1065:	f4                   	hlt
     1066:	66 2e 0f 1f 84 00 00 	cs nopw 0x0(%rax,%rax,1)
     106d:	00 00 00 
 
@@ -31,7 +31,7 @@ Disassembly of section .text:
     108d:	74 09                	je     1098 <deregister_tm_clones+0x28>
     108f:	ff e0                	jmp    *%rax
     1091:	0f 1f 80 00 00 00 00 	nopl   0x0(%rax)
-    1098:	c3                   	ret    
+    1098:	c3                   	ret
     1099:	0f 1f 80 00 00 00 00 	nopl   0x0(%rax)
 
 00000000000010a0 <register_tm_clones>:
@@ -49,11 +49,11 @@ Disassembly of section .text:
     10ce:	74 08                	je     10d8 <register_tm_clones+0x38>
     10d0:	ff e0                	jmp    *%rax
     10d2:	66 0f 1f 44 00 00    	nopw   0x0(%rax,%rax,1)
-    10d8:	c3                   	ret    
+    10d8:	c3                   	ret
     10d9:	0f 1f 80 00 00 00 00 	nopl   0x0(%rax)
 
 00000000000010e0 <__do_global_dtors_aux>:
-    10e0:	f3 0f 1e fa          	endbr64 
+    10e0:	f3 0f 1e fa          	endbr64
     10e4:	80 3d 25 2f 00 00 00 	cmpb   $0x0,0x2f25(%rip)        # 4010 <__TMC_END__>
     10eb:	75 2b                	jne    1118 <__do_global_dtors_aux+0x38>
     10ed:	55                   	push   %rbp
@@ -66,13 +66,13 @@ Disassembly of section .text:
     1107:	e8 64 ff ff ff       	call   1070 <deregister_tm_clones>
     110c:	c6 05 fd 2e 00 00 01 	movb   $0x1,0x2efd(%rip)        # 4010 <__TMC_END__>
     1113:	5d                   	pop    %rbp
-    1114:	c3                   	ret    
+    1114:	c3                   	ret
     1115:	0f 1f 00             	nopl   (%rax)
-    1118:	c3                   	ret    
+    1118:	c3                   	ret
     1119:	0f 1f 80 00 00 00 00 	nopl   0x0(%rax)
 
 0000000000001120 <frame_dummy>:
-    1120:	f3 0f 1e fa          	endbr64 
+    1120:	f3 0f 1e fa          	endbr64
     1124:	e9 77 ff ff ff       	jmp    10a0 <register_tm_clones>
 
 0000000000001129 <main>:
@@ -113,4 +113,4 @@ Disassembly of section .text:
     1199:	48 01 cf             	add    %rcx,%rdi
     119c:	48 01 d7             	add    %rdx,%rdi
     119f:	48 01 f7             	add    %rsi,%rdi
-    11a2:	c3                   	ret    
+    11a2:	c3                   	ret

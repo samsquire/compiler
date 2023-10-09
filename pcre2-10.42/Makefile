@@ -819,7 +819,7 @@ AS = as
 AUTOCONF = ${SHELL} '/home/sam/compiler/pcre2-10.42/missing' autoconf
 AUTOHEADER = ${SHELL} '/home/sam/compiler/pcre2-10.42/missing' autoheader
 AUTOMAKE = ${SHELL} '/home/sam/compiler/pcre2-10.42/missing' automake-1.16
-AWK = mawk
+AWK = gawk
 CC = gcc
 CCDEPMODE = depmode=gcc3
 CET_CFLAGS = -mshstk

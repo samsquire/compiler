@@ -54,7 +54,7 @@ sure both macros are undefined; an emulation function will then be used. */
 /* #undef EBCDIC_NL25 */
 
 /* Define this if your compiler supports __attribute__((uninitialized)) */
-/* #undef HAVE_ATTRIBUTE_UNINITIALIZED */
+#define HAVE_ATTRIBUTE_UNINITIALIZED 1
 
 /* Define to 1 if you have the `bcopy' function. */
 #define HAVE_BCOPY 1
