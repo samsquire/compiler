@@ -69,6 +69,7 @@ struct RangePair {
 
 struct Assignment {
   struct Expression *expression;
+  struct ExpressionSource *exps;
   char * variable;  
   char * variable_key;  
   int variable_length;
@@ -84,6 +85,14 @@ struct Assignment {
   struct Expression **reference_expressions;
   int reference_expressions_length;
 };
+struct Edges {
+  struct Edge **edges;
+  int edge_count;
+};
+struct Edge {
+  struct Assignment *assignment;
+};
+
 struct Range {
   struct Expression * expression; 
   struct Assignment *start_assignment; 
@@ -1177,11 +1186,11 @@ int writecode(struct CodeGenContext * context, struct FunctionContext * function
            function_context->code[function_context->pc++] = 0x48; 
            function_context->code[function_context->pc++] = 0xbf; 
            char * start = function_context->code + function_context->pc; 
-           char * address = malloc(sizeof(char) * 8);
+           uintptr_t * address = malloc(sizeof(uintptr_t) * 1);
             
-           address = (char*)function->id;
+           *address = (uintptr_t) function->id;
            printf("%p %p creating function id %ld\n", arg1->stringvalue, address, (long) address);
-           memcpy(start, &address, 8);
+           memcpy(start, address, 8);
            function_context->pc += 8;
 
            function_context->code[function_context->pc++] = 0x49; 
@@ -1431,8 +1440,8 @@ int dump_machine_code(char * name, char * code) {
 
 }
 int compile_stub(int function_id) {
+  printf("Calling compile of user function for stub %d\n", function_id);
   struct Function * function = CODEGEN_CONTEXT->user_functions[function_id];    
-  printf("Calling compile of user function\n");
   mprotect(function->context->code, getpagesize(), PROT_READ | PROT_EXEC | PROT_WRITE);
   writecode(CODEGEN_CONTEXT, function->context, function->anf);
   mprotect(function->context->code, getpagesize(), PROT_READ | PROT_EXEC);
@@ -1552,6 +1561,12 @@ struct AssignmentPair * assignregisters(struct NormalForm *anf) {
   int counter = 0; 
   
   for (int x = 0 ; x < anf->count; x++) {
+    struct ExpressionSource *exps = calloc(1, sizeof(struct ExpressionSource));
+    struct Expression **expressions = calloc(100, sizeof(struct Expression*));
+    exps->expressions = expressions;
+    exps->expression_length = 0;
+    exps->expressions[exps->expression_length++] = anf->expressions[x];
+    assignments[assignment_counter].exps = exps;
     switch (anf->expressions[x]->type) {
       case METHOD_CALL:
         char * key = malloc(sizeof(char) * 50);
@@ -1790,6 +1805,10 @@ struct AssignmentPair * assignregisters(struct NormalForm *anf) {
         assignments[assignment_counter].reference_length = return_reference_count;
         assignment_counter++;
         break;
+      default:
+      printf("DEFAULT CASE %d\n", anf->expressions[x]->type);
+
+
     }     
   }
 
@@ -1939,9 +1958,43 @@ int assign_all_registers(struct NormalForm *anf, struct AssignmentPair *assignme
 
 }
 
+int do_graph_colouring(struct NormalForm *anfs, struct AssignmentPair *assignment_pair) {
+  struct hashmap * forward_links = calloc(1, sizeof(struct hashmap));
+
+  printf("### DOING GRAPH COLOURING\n");
+  printf("%d assignments\n", assignment_pair->assignment_length);
+  for (int x = 0 ; x < assignment_pair->assignment_length; x++) {
+    char * var_key = assignment_pair->assignments[x].variable;
+    printf("Variable %d: %s \n", x, var_key);
+    dump_expressions(0, assignment_pair->assignments[x].exps);
+    int var_key_length = assignment_pair->assignments[x].variable_length;
+    struct hashmap_value *value = get_hashmap(forward_links, var_key);
+    struct Edges *edges;
+    if (value->set == 1) {
+      printf("Forward link to %s found\n", var_key);
+      edges = (struct Edges*) value->value;
+    } else {
+      printf("Forward link to %s NOT found\n", var_key);
+      struct Edges *edges = calloc(1, sizeof(struct Edges));
+      edges->edge_count = 0;
+      edges->edges = calloc(100, sizeof(struct Edge*));
+      set_hashmap(forward_links, var_key, (uintptr_t) edges, var_key_length);
+      struct hashmap_value *value = get_hashmap(forward_links, var_key);
+      edges = (struct Edges*) value->value;
+    }
+    struct Edge *new_edge = calloc(1, sizeof(struct Edge));
+    new_edge->assignment = &assignment_pair->assignments[x];
+    // edges->edges[edges->edge_count++] = new_edge;
+    // set_hashmap(forward_links, range_pair->ranges[x]->variable, (uintptr_t) 0, range_pair->ranges[x]->variable_length);
+     
+  }
+  printf("### END GRAPH COLOURING\n");
+}
+
 int machine_code(struct ANF *anfs) {
   int pc = 0;
   assign_all_registers(anfs->anf, anfs->anf->assignment_pair);
+  do_graph_colouring(anfs->anf, anfs->anf->assignment_pair);
   for (int x = 0 ; x < anfs->function_length; x++) {
     assign_all_registers(anfs->functions[x]->anf, anfs->functions[x]->anf->assignment_pair);
   }

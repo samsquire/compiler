@@ -1,0 +1,260 @@
+Parsing code
+function other(int number) {
+    identifier1.identifier2.printf("Number:", number);
+}
+function hello(int number, string data) {
+    other(number);
+    printf(data, number);
+}
+hello(6);
+FIRST INTO 0x56242f8a05f0
+HASH TABLE 56
+member 6953778704349
+function 7572387384277067
+if 5863476
+return 6953974653989
+open 6385555319
+close 210708961883
+comma 210709067314
+
+expression length is 0
+Getting token
+parsebegin Skipping whitespace
+
+-1 rc is
+functionfunctionbodybegin Skipping whitespace
+
+-1 rc is
+Is a function other
+open
+-1 rc is
+funcparamname Skipping whitespace
+
+-1 rc is
+type is int name is number
+commacheck CLOSE TAG
+loopparameterlist CLOSE TAG
+functioncurlyopencheck Skipping whitespace
+function parse INTO 0x56242f8a1010functionbodyitem Skipping whitespace
+functionbodyitem Skipping whitespace
+functionbodyitem Skipping whitespace
+functionbodyitem Skipping whitespace
+functionbodyitem Skipping whitespace
+
+-1 rc is
+Hash for token identifier1 is -4568482124042787911
+functionparse parseexpression Is an identifier identifier1
+expression location 0 0x56242f8a13d0
+ identifier identifier1 0
+functionbodyitem CLOSE TAGHash for token member is 6953778704349
+Is an member access operator
+
+-1 rc is
+Hash for token identifier2 is -4568482124042787910
+functionparse parseexpression Is an identifier identifier2
+expression location 1 0x56242f8a1b40
+ member access (null) 0
+  identifier identifier1 0
+ identifier identifier2 0
+functionbodyitem CLOSE TAGHash for token member is 6953778704349
+Is an member access operator
+
+-1 rc is
+Hash for token printf is 6953911397304
+functionparse parseexpression Is an identifier printf
+expression location 1 0x56242f8a22f0
+ member access (null) 0
+  member access (null) 0
+   identifier identifier1 0
+  identifier identifier2 0
+ identifier printf 0
+Hash for token open is 6385555319
+open bracket
+OWNER 1
+expression location 1 0x56242f8a22f0
+ member access (null) 0
+  member access (null) 0
+   identifier identifier1 0
+  identifier identifier2 0
+ method call (null) 0
+  identifier printf 0
+Parsing subexpression
+
+
+inside a quote
+
+
+-1 rc is
+Hash for token Number: is 229435287902824
+exprparse parseexpression Is an identifier Number:
+expression location 1 0x56242f8a2cd0
+ identifier printf 0
+ identifier Number: 0
+Hash for token comma is 210709067314
+functionbodyitem Skipping whitespace
+
+-1 rc is
+Hash for token number is 6953836814478
+exprparse parseexpression Is an identifier number
+expression location 2 0x56242f8a30e0
+ identifier printf 0
+ identifier Number: 0
+ identifier number 0
+functionbodyitem CLOSE TAG
+functionbodyitem CLOSE expression
+Hash for token endstatement is -3372849529167478127
+functionparse End of statement
+functionbodyitem Skipping whitespace
+expression length is 0
+Getting token
+parsebegin Skipping whitespace
+
+-1 rc is
+functionfunctionbodybegin Skipping whitespace
+
+-1 rc is
+Is a function hello
+open
+-1 rc is
+funcparamname Skipping whitespace
+
+-1 rc is
+type is int name is number
+loopparameterlist Skipping whitespace
+
+-1 rc is
+funcparamname Skipping whitespace
+
+-1 rc is
+type is string name is data
+commacheck CLOSE TAG
+loopparameterlist CLOSE TAG
+functioncurlyopencheck Skipping whitespace
+function parse INTO 0x56242f8a3830functionbodyitem Skipping whitespace
+functionbodyitem Skipping whitespace
+functionbodyitem Skipping whitespace
+functionbodyitem Skipping whitespace
+functionbodyitem Skipping whitespace
+
+-1 rc is
+Hash for token other is 210723472359
+functionparse parseexpression Is an identifier other
+expression location 0 0x56242f8a3bf0
+ identifier other 0
+Hash for token open is 6385555319
+open bracket
+OWNER 0
+expression location 1 0x56242f8a3bf0
+ method call (null) 0
+  identifier other 0
+Parsing subexpression
+
+-1 rc is
+Hash for token number is 6953836814478
+exprparse parseexpression Is an identifier number
+expression location 1 0x56242f8a43c0
+ identifier other 0
+ identifier number 0
+functionbodyitem CLOSE TAG
+functionbodyitem CLOSE expression
+Hash for token endstatement is -3372849529167478127
+functionparse End of statement
+functionbodyitem Skipping whitespace
+functionbodyitem Skipping whitespace
+functionbodyitem Skipping whitespace
+functionbodyitem Skipping whitespace
+functionbodyitem Skipping whitespace
+
+-1 rc is
+Hash for token printf is 6953911397304
+functionparse parseexpression Is an identifier printf
+expression location 1 0x56242f8a47d0
+ method call (null) 0
+  identifier other 0
+  identifier number 0
+ identifier printf 0
+Hash for token open is 6385555319
+open bracket
+OWNER 1
+expression location 1 0x56242f8a47d0
+ method call (null) 0
+  identifier other 0
+  identifier number 0
+ method call (null) 0
+  identifier printf 0
+Parsing subexpression
+
+-1 rc is
+Hash for token data is 6385144159
+exprparse parseexpression Is an identifier data
+expression location 1 0x56242f8a5000
+ identifier printf 0
+ identifier data 0
+Hash for token comma is 210709067314
+functionbodyitem Skipping whitespace
+
+-1 rc is
+Hash for token number is 6953836814478
+exprparse parseexpression Is an identifier number
+expression location 2 0x56242f8a5410
+ identifier printf 0
+ identifier data 0
+ identifier number 0
+functionbodyitem CLOSE TAG
+functionbodyitem CLOSE expression
+Hash for token endstatement is -3372849529167478127
+functionparse End of statement
+functionbodyitem Skipping whitespace
+expression length is 0
+Getting token
+parsebegin Skipping whitespace
+
+-1 rc is
+hellofunctionparse Funcbody Is an identifier hello
+functionparse New position is 0
+identifier INTO 0x56242f8a05f0
+Hash for token open is 6385555319
+open bracket
+OWNER 0
+expression location 1 0x56242f8a5820
+ method call (null) 0
+  identifier hello 0
+Parsing subexpression
+
+-1 rc is
+Hash for token 6 is 177627
+exprparse parseexpression Is an identifier 6
+expression location 1 0x56242f8a6950
+ identifier hello 0
+ identifier 6 0
+functionbodyitem CLOSE TAG
+end earlyfunctionbodyitem CLOSE expression
+Dumping AST
+ method call (null) 0
+  identifier hello 0
+  identifier 6 0
+##########Function other
+- parameter name number
+- parameter type int
+Has 2 expressions
+ member access (null) 0
+  member access (null) 0
+   identifier identifier1 0
+  identifier identifier2 0
+ method call (null) 0
+  identifier printf 0
+  identifier Number: 0
+  identifier number 0
+##########Function hello
+- parameter name number
+- parameter type int
+- parameter name data
+- parameter type string
+Has 2 expressions
+ method call (null) 0
+  identifier other 0
+  identifier number 0
+ method call (null) 0
+  identifier printf 0
+  identifier data 0
+  identifier number 0
