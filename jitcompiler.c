@@ -73,6 +73,7 @@ struct Assignment {
   char * variable;  
   char * variable_key;  
   int variable_length;
+  int variable_key_length;
   int type;
   char * symbol; 
   char * left;
@@ -91,6 +92,7 @@ struct Edges {
 };
 struct Edge {
   struct Assignment *assignment;
+  char * destination;
 };
 
 struct Range {
@@ -1602,8 +1604,9 @@ struct AssignmentPair * assignregisters(struct NormalForm *anf) {
         struct Expression ** reference_expressions = calloc(100, sizeof(struct Expression*));
         int reference_expressions_count = 0;
         assignments[assignment_counter].references = references;
-        
+        // comma separated expressions are statements 
         for (int y = 0 ; y < anf->expressions[x]->statements->statements; y++) {
+
             for (int e = 0; e < anf->expressions[x]->exps[y]->expression_length; e++) {
               char * method_variable_key = malloc(sizeof(char)*100);
               sprintf(method_variable_key, "%d-%s", anf->expressions[x]->exps[y]->expressions[e]->id, anf->expressions[x]->exps[y]->expressions[e]->variable );
@@ -1973,27 +1976,46 @@ int do_graph_colouring(struct NormalForm *anfs, struct AssignmentPair *assignmen
   for (int x = 0 ; x < assignment_pair->assignment_length; x++) {
     char * var_key = assignment_pair->assignments[x].variable;
     printf("Variable %d: %s \n", x, var_key);
-    dump_expressions(0, assignment_pair->assignments[x].exps);
-    int var_key_length = assignment_pair->assignments[x].variable_length;
-    struct hashmap_value *value = get_hashmap(forward_links, var_key);
-    struct Edges *edges;
-    if (value->set == 1) {
-      printf("Forward link to %s found\n", var_key);
-      edges = (struct Edges*) value->value;
-    } else {
-      printf("Forward link to %s NOT found\n", var_key);
-      struct Edges *new_edges = calloc(1, sizeof(struct Edges));
-      new_edges->edge_count = 0;
-      new_edges->edges = calloc(100, sizeof(struct Edge*));
-      set_hashmap(forward_links, var_key, (uintptr_t) new_edges, var_key_length);
-      struct hashmap_value *value = get_hashmap(forward_links, var_key);
-      edges = (struct Edges*) value->value;
+    for (int k = 0 ; k < assignment_pair->assignments[x].reference_length ; k++) {
+      printf("Found reference %s to %s\n", var_key, assignment_pair->assignments[x].references[k]);
+      char * from = assignment_pair->assignments[x].references[k];
+      char * to = var_key;
+      dump_expressions(0, assignment_pair->assignments[x].exps);
+      int var_key_length = assignment_pair->assignments[x].variable_length;
+      struct hashmap_value *value = get_hashmap(forward_links, from);
+      struct Edges *edges;
+      if (value->set == 1) {
+        printf("Forward link to %s found\n", from);
+        edges = (struct Edges*) value->value;
+      } else {
+        printf("Forward link to %s NOT found\n", from);
+        struct Edges *new_edges = calloc(1, sizeof(struct Edges));
+        new_edges->edge_count = 0;
+        new_edges->edges = calloc(100, sizeof(struct Edge*));
+        set_hashmap(forward_links, var_key, (uintptr_t) new_edges, var_key_length);
+        struct hashmap_value *value = get_hashmap(forward_links, from);
+        edges = (struct Edges*) value->value;
+      }
+      struct Edge *new_edge = calloc(1, sizeof(struct Edge));
+      new_edge->destination = to;
+      new_edge->assignment = &assignment_pair->assignments[x];
+      edges->edges[edges->edge_count++] = new_edge;
+      printf("Links to %s\n", from);
+      for (int y = 0 ; y < edges->edge_count; y++) {
+        printf("- %s\n", edges->edges[y]->destination);
+        // dump_expressions(0, edges->edges[y]->assignment->exps);
+      }
     }
-    struct Edge *new_edge = calloc(1, sizeof(struct Edge));
-    new_edge->assignment = &assignment_pair->assignments[x];
-    edges->edges[edges->edge_count++] = new_edge;
     // set_hashmap(forward_links, range_pair->ranges[x]->variable, (uintptr_t) 0, range_pair->ranges[x]->variable_length);
-     
+  }
+  struct Edge **edge = calloc(1, sizeof(struct Edge*));
+  for (int x = 0 ; x < MAX_SIZE ; x++) {
+    if (forward_links->value[x].set == 1) {
+      struct Edges *edge = (struct Edges *) forward_links->value[x].value;
+      if (edge->edge_count > 0 && edge->edge_count < 32) {
+        printf("FOUND EDGE WITH EDGE COUNT < 32\n");
+      }  
+    }
   }
   printf("### END GRAPH COLOURING\n");
 }
