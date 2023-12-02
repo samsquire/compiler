@@ -1982,16 +1982,16 @@ int do_graph_colouring(struct NormalForm *anfs, struct AssignmentPair *assignmen
       edges = (struct Edges*) value->value;
     } else {
       printf("Forward link to %s NOT found\n", var_key);
-      struct Edges *edges = calloc(1, sizeof(struct Edges));
-      edges->edge_count = 0;
-      edges->edges = calloc(100, sizeof(struct Edge*));
-      set_hashmap(forward_links, var_key, (uintptr_t) edges, var_key_length);
+      struct Edges *new_edges = calloc(1, sizeof(struct Edges));
+      new_edges->edge_count = 0;
+      new_edges->edges = calloc(100, sizeof(struct Edge*));
+      set_hashmap(forward_links, var_key, (uintptr_t) new_edges, var_key_length);
       struct hashmap_value *value = get_hashmap(forward_links, var_key);
       edges = (struct Edges*) value->value;
     }
     struct Edge *new_edge = calloc(1, sizeof(struct Edge));
     new_edge->assignment = &assignment_pair->assignments[x];
-    // edges->edges[edges->edge_count++] = new_edge;
+    edges->edges[edges->edge_count++] = new_edge;
     // set_hashmap(forward_links, range_pair->ranges[x]->variable, (uintptr_t) 0, range_pair->ranges[x]->variable_length);
      
   }
