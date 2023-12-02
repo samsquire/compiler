@@ -1442,8 +1442,15 @@ int dump_machine_code(char * name, char * code) {
 int compile_stub(int function_id) {
   printf("Calling compile of user function for stub %d\n", function_id);
   struct Function * function = CODEGEN_CONTEXT->user_functions[function_id];    
+  struct FunctionContext *function_context = function->context;
+  function->context->pc = 0;
   mprotect(function->context->code, getpagesize(), PROT_READ | PROT_EXEC | PROT_WRITE);
+  char *write_region = function->context->code;
+  memset(function_context->code, 0, getpagesize());
+  write_region[function_context->pc++] = 0x55;
   writecode(CODEGEN_CONTEXT, function->context, function->anf);
+  write_region[function_context->pc++] = 0x5d; 
+  write_region[function_context->pc++] = 0xc3; 
   mprotect(function->context->code, getpagesize(), PROT_READ | PROT_EXEC);
   printf("Patching callsites\n");  
   char * address = malloc(sizeof(char) * 8);
