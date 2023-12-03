@@ -1968,6 +1968,21 @@ int assign_all_registers(struct NormalForm *anf, struct AssignmentPair *assignme
 
 }
 
+int precolour_method_call(struct Expression *expression, char ** real_registers, int register_count) {
+  // printf("Found expression type %d\n", expression->type);
+    for (int n = 0 ; n < expression->statements->statements; n++) {
+      for (int k = 0 ; k < expression->exps[n]->expression_length; k++) {
+          printf("Found expression in method call %d\n", expression->exps[n]->expressions[k]->type);
+        switch (expression->exps[n]->expressions[k]->type) {
+          case METHOD_CALL:
+            printf("submethodcall\n");
+          break;
+        }
+      }
+    }
+
+}
+
 int do_graph_colouring(struct NormalForm *anfs, struct AssignmentPair *assignment_pair) {
   struct hashmap * forward_links = calloc(1, sizeof(struct hashmap));
 
@@ -1992,13 +2007,14 @@ int do_graph_colouring(struct NormalForm *anfs, struct AssignmentPair *assignmen
         struct Edges *new_edges = calloc(1, sizeof(struct Edges));
         new_edges->edge_count = 0;
         new_edges->edges = calloc(100, sizeof(struct Edge*));
-        set_hashmap(forward_links, var_key, (uintptr_t) new_edges, var_key_length);
+        set_hashmap(forward_links, from, (uintptr_t) new_edges, strlen(from));
         struct hashmap_value *value = get_hashmap(forward_links, from);
         edges = (struct Edges*) value->value;
       }
       struct Edge *new_edge = calloc(1, sizeof(struct Edge));
       new_edge->destination = to;
       new_edge->assignment = &assignment_pair->assignments[x];
+      printf("%p\n", edges->edges);
       edges->edges[edges->edge_count++] = new_edge;
       printf("Links to %s\n", from);
       for (int y = 0 ; y < edges->edge_count; y++) {
@@ -2008,15 +2024,46 @@ int do_graph_colouring(struct NormalForm *anfs, struct AssignmentPair *assignmen
     }
     // set_hashmap(forward_links, range_pair->ranges[x]->variable, (uintptr_t) 0, range_pair->ranges[x]->variable_length);
   }
-  struct Edge **edge = calloc(1, sizeof(struct Edge*));
+  struct Edges **edge_stack = calloc(100, sizeof(struct Edges*));
+  int stack_count = 0;
   for (int x = 0 ; x < MAX_SIZE ; x++) {
     if (forward_links->value[x].set == 1) {
       struct Edges *edge = (struct Edges *) forward_links->value[x].value;
       if (edge->edge_count > 0 && edge->edge_count < 32) {
         printf("FOUND EDGE WITH EDGE COUNT < 32\n");
+        edge_stack[stack_count++] = edge;
       }  
     }
   }
+  char ** real_registers = calloc(100, sizeof(char*));
+  int register_count = 0; 
+  real_registers[register_count++] = "rax";
+  real_registers[register_count++] = "rcx";
+  real_registers[register_count++] = "rdx";
+  real_registers[register_count++] = "rbx";
+  real_registers[register_count++] = "rsi";
+  real_registers[register_count++] = "rdi";
+  for (int x = 0 ; x < anfs->count; x++) {
+        switch (anfs->expressions[x]->type) {
+          case METHOD_CALL:
+            printf("Found method call\n");
+            precolour_method_call(anfs->expressions[x], real_registers, register_count);
+            break;
+        }
+  }
+
+  char ** available = calloc(100, sizeof(char*));
+  int available_len = 0;
+  int stack_size = stack_count;
+  while (stack_size > 0) {
+    if (available_len == 0) {
+      for (int x = 0 ; x < register_count ; x++) {
+        available[x] = real_registers[x];
+      }
+    } 
+    stack_size--; 
+  }
+
   printf("### END GRAPH COLOURING\n");
 }
 
