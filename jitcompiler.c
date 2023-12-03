@@ -1558,6 +1558,45 @@ int codegen(struct ANF *anfs) {
   fclose(fp);
   printf("\n");
 }
+
+int precolour_method_call(struct Expression *expression, char ** real_registers, int register_count) {
+  int current_register = 0;
+  // printf("Found expression type %d\n", expression->type);
+    for (int n = 0 ; n < expression->statements->statements; n++) {
+      for (int k = 0 ; k < expression->exps[n]->expression_length; k++) {
+        char * assigned_register = real_registers[current_register++];
+        expression->exps[n]->expressions[k]->chosen_register = assigned_register;
+        printf("Found expression in method call %d %s %s\n", expression->exps[n]->expressions[k]->type, expression->exps[n]->expressions[k]->stringvalue, assigned_register);
+        switch (expression->exps[n]->expressions[k]->type) {
+          case METHOD_CALL:
+            printf("submethodcall\n");
+            precolour_method_call(expression->exps[n]->expressions[k], real_registers, register_count);
+          break;
+        }
+      }
+    }
+}
+
+int precolour_anf(struct NormalForm *anfs) {
+  char ** real_registers = calloc(100, sizeof(char*));
+  int register_count = 0; 
+  real_registers[register_count++] = "rax";
+  real_registers[register_count++] = "rcx";
+  real_registers[register_count++] = "rdx";
+  real_registers[register_count++] = "rbx";
+  real_registers[register_count++] = "rsi";
+  real_registers[register_count++] = "rdi";
+  for (int x = 0 ; x < anfs->count; x++) {
+        switch (anfs->expressions[x]->type) {
+          case METHOD_CALL:
+            printf("Found method call\n");
+            precolour_method_call(anfs->expressions[x], real_registers, register_count);
+            break;
+        }
+  }
+  return 0;
+}
+
 #define BINOP 0
 #define MULTIARY 1
 #define UNARY 2
@@ -1576,6 +1615,12 @@ struct AssignmentPair * assignregisters(struct NormalForm *anf) {
     exps->expression_length = 0;
     exps->expressions[exps->expression_length++] = anf->expressions[x];
     assignments[assignment_counter].exps = exps;
+    assignments[assignment_counter].chosen_register = 0;
+
+    if (anf->expressions[x]->chosen_register != 0) {
+      assignments[assignment_counter].chosen_register = anf->expressions[x]->chosen_register;
+      printf("FOUND PRECOLOURED REGISTER %s\n", assignments[assignment_counter].chosen_register);
+    }
     switch (anf->expressions[x]->type) {
       case METHOD_CALL:
         char * key = malloc(sizeof(char) * 50);
@@ -1968,20 +2013,6 @@ int assign_all_registers(struct NormalForm *anf, struct AssignmentPair *assignme
 
 }
 
-int precolour_method_call(struct Expression *expression, char ** real_registers, int register_count) {
-  // printf("Found expression type %d\n", expression->type);
-    for (int n = 0 ; n < expression->statements->statements; n++) {
-      for (int k = 0 ; k < expression->exps[n]->expression_length; k++) {
-          printf("Found expression in method call %d\n", expression->exps[n]->expressions[k]->type);
-        switch (expression->exps[n]->expressions[k]->type) {
-          case METHOD_CALL:
-            printf("submethodcall\n");
-          break;
-        }
-      }
-    }
-
-}
 
 int do_graph_colouring(struct NormalForm *anfs, struct AssignmentPair *assignment_pair) {
   struct hashmap * forward_links = calloc(1, sizeof(struct hashmap));
@@ -2060,8 +2091,18 @@ int do_graph_colouring(struct NormalForm *anfs, struct AssignmentPair *assignmen
       for (int x = 0 ; x < register_count ; x++) {
         available[x] = real_registers[x];
       }
+      available_len = register_count;
     } 
+    printf("#### %d registers available\n", available_len);
+    for (int x = 0 ; x < available_len; x++) {
+      printf(" - %s", available[x]);
+    } 
+
     stack_size--; 
+
+    struct Edges * item = edge_stack[stack_size];
+    
+    
   }
 
   printf("### END GRAPH COLOURING\n");
@@ -2151,8 +2192,10 @@ int main(int argc, char *argv[])
     printf("ANF for main\n");
     dump_anf(anfs->anf);
     printf("Assigning registers\n");
+    precolour_anf(anfs->anf);
     assignregisters(anfs->anf); 
     for (int x = 0 ; x < anfs->function_length; x++) {
+      precolour_anf(anfs->anf);
       assignregisters(anfs->functions[x]->anf); 
     }
     FILE *mapsfd = fopen("/proc/self/maps", "r");
