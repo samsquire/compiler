@@ -9,6 +9,15 @@ I have two compilers:
 
 Scroll down.
 
+# amd64 cheatsheet
+
+| Description | Opcode                                                       |
+| ----------- | ------------------------------------------------------------ |
+| movq        | rax 0x48 0xc7 0xc0 0xXX 0XX 0XX 0XX<br />rbx 0x48 0xc7 0xc3 0xXX 0xXX 0xXX 0xXX<br />rcx 0x48 0xc7 0xc1 0xXX 0xXX 0xXX 0xXX<br />rdi 0x48 0xc7 0xc7 0xXX 0xXX 0xXX 0xXX |
+|             |                                                              |
+
+
+
 # amd64 compiler written in Python
 
 a compiler backend for amd64 x86_64
