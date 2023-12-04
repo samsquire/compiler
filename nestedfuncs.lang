@@ -3,3 +3,4 @@ function talker(int a, int b) {
 }
 printf("value: %d\n", 1 + talker(6, 7));
 printf("value2: %d\n", talker(8, 9));
+9 + 11;

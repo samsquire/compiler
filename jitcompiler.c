@@ -89,6 +89,7 @@ struct Assignment {
 struct Edges {
   struct Edge **edges;
   int edge_count;
+  struct Assignment *from;
 };
 struct Edge {
   struct Assignment *assignment;
@@ -1564,6 +1565,9 @@ int precolour_method_call(struct Expression *expression, char ** real_registers,
   // printf("Found expression type %d\n", expression->type);
     for (int n = 0 ; n < expression->statements->statements; n++) {
       for (int k = 0 ; k < expression->exps[n]->expression_length; k++) {
+        if (current_register >= register_count) {
+          printf("WARNING Need to spill\n");
+        }
         char * assigned_register = real_registers[current_register++];
         expression->exps[n]->expressions[k]->chosen_register = assigned_register;
         printf("Found expression in method call %d %s %s\n", expression->exps[n]->expressions[k]->type, expression->exps[n]->expressions[k]->stringvalue, assigned_register);
@@ -1615,11 +1619,10 @@ struct AssignmentPair * assignregisters(struct NormalForm *anf) {
     exps->expression_length = 0;
     exps->expressions[exps->expression_length++] = anf->expressions[x];
     assignments[assignment_counter].exps = exps;
-    assignments[assignment_counter].chosen_register = 0;
 
     if (anf->expressions[x]->chosen_register != 0) {
       assignments[assignment_counter].chosen_register = anf->expressions[x]->chosen_register;
-      printf("FOUND PRECOLOURED REGISTER %s\n", assignments[assignment_counter].chosen_register);
+      printf("FOUND PRECOLOURED REGISTER %p\n", assignments[assignment_counter].chosen_register);
     }
     switch (anf->expressions[x]->type) {
       case METHOD_CALL:
@@ -2020,12 +2023,20 @@ int do_graph_colouring(struct NormalForm *anfs, struct AssignmentPair *assignmen
   printf("### DOING GRAPH COLOURING\n");
   printf("%d assignments\n", assignment_pair->assignment_length);
   for (int x = 0 ; x < assignment_pair->assignment_length; x++) {
-    char * var_key = assignment_pair->assignments[x].variable;
+    char * var_key = assignment_pair->assignments[x].variable_key;
     printf("Variable %d: %s \n", x, var_key);
+    if (assignment_pair->assignments[x].reference_length == 0) {
+      char * from = var_key;
+      struct Edges *new_edges = calloc(1, sizeof(struct Edges));
+      new_edges->from = &assignment_pair->assignments[x];
+      new_edges->edge_count = 0;
+      new_edges->edges = calloc(100, sizeof(struct Edge*));
+      set_hashmap(forward_links, from, (uintptr_t) new_edges, strlen(from));
+    }
     for (int k = 0 ; k < assignment_pair->assignments[x].reference_length ; k++) {
       printf("Found reference %s to %s\n", var_key, assignment_pair->assignments[x].references[k]);
-      char * from = assignment_pair->assignments[x].references[k];
-      char * to = var_key;
+      char * from = var_key;
+      char * to = assignment_pair->assignments[x].references[k];
       dump_expressions(0, assignment_pair->assignments[x].exps);
       int var_key_length = assignment_pair->assignments[x].variable_length;
       struct hashmap_value *value = get_hashmap(forward_links, from);
@@ -2036,6 +2047,7 @@ int do_graph_colouring(struct NormalForm *anfs, struct AssignmentPair *assignmen
       } else {
         printf("Forward link to %s NOT found\n", from);
         struct Edges *new_edges = calloc(1, sizeof(struct Edges));
+        new_edges->from = &assignment_pair->assignments[x];
         new_edges->edge_count = 0;
         new_edges->edges = calloc(100, sizeof(struct Edge*));
         set_hashmap(forward_links, from, (uintptr_t) new_edges, strlen(from));
@@ -2043,6 +2055,7 @@ int do_graph_colouring(struct NormalForm *anfs, struct AssignmentPair *assignmen
         edges = (struct Edges*) value->value;
       }
       struct Edge *new_edge = calloc(1, sizeof(struct Edge));
+      
       new_edge->destination = to;
       new_edge->assignment = &assignment_pair->assignments[x];
       printf("%p\n", edges->edges);
@@ -2055,17 +2068,6 @@ int do_graph_colouring(struct NormalForm *anfs, struct AssignmentPair *assignmen
     }
     // set_hashmap(forward_links, range_pair->ranges[x]->variable, (uintptr_t) 0, range_pair->ranges[x]->variable_length);
   }
-  struct Edges **edge_stack = calloc(100, sizeof(struct Edges*));
-  int stack_count = 0;
-  for (int x = 0 ; x < MAX_SIZE ; x++) {
-    if (forward_links->value[x].set == 1) {
-      struct Edges *edge = (struct Edges *) forward_links->value[x].value;
-      if (edge->edge_count > 0 && edge->edge_count < 32) {
-        printf("FOUND EDGE WITH EDGE COUNT < 32\n");
-        edge_stack[stack_count++] = edge;
-      }  
-    }
-  }
   char ** real_registers = calloc(100, sizeof(char*));
   int register_count = 0; 
   real_registers[register_count++] = "rax";
@@ -2074,6 +2076,18 @@ int do_graph_colouring(struct NormalForm *anfs, struct AssignmentPair *assignmen
   real_registers[register_count++] = "rbx";
   real_registers[register_count++] = "rsi";
   real_registers[register_count++] = "rdi";
+  struct Edges **edge_stack = calloc(100, sizeof(struct Edges*));
+  int stack_count = 0;
+  for (int x = 0 ; x < MAX_SIZE ; x++) {
+    if (forward_links->value[x].set == 1) {
+      struct Edges *edge = (struct Edges *) forward_links->value[x].value;
+      if (edge->edge_count > 0 && edge->edge_count < register_count) {
+        printf("FOUND EDGE WITH EDGE COUNT < %d %s\n", register_count, edge->from->variable);
+        dump_expressions(0, edge->from->expression->exps[0]);
+        edge_stack[stack_count++] = edge;
+      }  
+    }
+  }
   for (int x = 0 ; x < anfs->count; x++) {
         switch (anfs->expressions[x]->type) {
           case METHOD_CALL:
@@ -2085,8 +2099,10 @@ int do_graph_colouring(struct NormalForm *anfs, struct AssignmentPair *assignmen
 
   char ** available = calloc(100, sizeof(char*));
   int available_len = 0;
-  int stack_size = stack_count;
-  while (stack_size > 0) {
+  int available_index = 0;
+  int stack_index = stack_count;
+  while (stack_index > 0) {
+    printf("###### GRAPH COLOUR STACK ITEM\n");
     if (available_len == 0) {
       for (int x = 0 ; x < register_count ; x++) {
         available[x] = real_registers[x];
@@ -2097,12 +2113,44 @@ int do_graph_colouring(struct NormalForm *anfs, struct AssignmentPair *assignmen
     for (int x = 0 ; x < available_len; x++) {
       printf(" - %s", available[x]);
     } 
+    printf("\n");
 
-    stack_size--; 
+    stack_index--; 
 
-    struct Edges * item = edge_stack[stack_size];
+    struct Edges * item = edge_stack[stack_index];
+    dump_expressions(0, item->from->expression->exps[0]);
+    if (item->from->chosen_register == NULL) {
+      printf("%s Doesn't have a register assigned\n", item->from->variable);
+      available_len--;
+      char * chosen_register = available[available_index];
+      available_index++;
+      item->from->chosen_register = chosen_register;
+      item->from->expression->chosen_register = chosen_register;
+      printf("Chosen %s\n", chosen_register);
+       
+    } else {
+      printf("Vertice is precoloured %s %s\n", item->from->variable, item->from->chosen_register);
+      int removed_pos = -1;
+      available_len--; 
+      for (int x = 0 ; x < available_len; x++) {
+        if (strcmp(item->from->chosen_register, available[x]) == 0) {
+          printf("Found removed register in %d\n", x);
+          removed_pos = x;
+        }
+      } 
+      if (removed_pos != -1) {
+        for (int x = removed_pos ; x < register_count - 1; x++) {
+          available[x] = available[x + 1]; 
+        }
+        available[available_len] = 0;
+
+      }
+    }  
     
     
+  }
+  for (int x = 0 ; x < assignment_pair->assignment_length; x++) {
+    printf("%s register = %s\n", assignment_pair->assignments[x].variable, assignment_pair->assignments[x].chosen_register);
   }
 
   printf("### END GRAPH COLOURING\n");
@@ -2114,6 +2162,7 @@ int machine_code(struct ANF *anfs) {
   do_graph_colouring(anfs->anf, anfs->anf->assignment_pair);
   for (int x = 0 ; x < anfs->function_length; x++) {
     assign_all_registers(anfs->functions[x]->anf, anfs->functions[x]->anf->assignment_pair);
+    do_graph_colouring(anfs->functions[x]->anf, anfs->functions[x]->anf->assignment_pair);
   }
   printf("Codegen for main\n");
   codegen(anfs);  
@@ -2195,7 +2244,7 @@ int main(int argc, char *argv[])
     precolour_anf(anfs->anf);
     assignregisters(anfs->anf); 
     for (int x = 0 ; x < anfs->function_length; x++) {
-      precolour_anf(anfs->anf);
+      precolour_anf(anfs->functions[x]->anf);
       assignregisters(anfs->functions[x]->anf); 
     }
     FILE *mapsfd = fopen("/proc/self/maps", "r");
