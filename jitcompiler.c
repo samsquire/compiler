@@ -1385,14 +1385,20 @@ int writecode(struct CodeGenContext * context, struct FunctionContext * function
           
          // prepare_bytes[prepare_bytes_count++] = 0x48; 
          // prepare_bytes[prepare_bytes_count++] = 0x01; 
-         move_var(register_right, destination_register, prepare_bytes); 
+         
+         if (strcmp(register_right, destination_register) != 0) {
+           printf("moving register right into destination register");
+           move_var(register_right, destination_register, prepare_bytes); 
+         }
 
          add_bytes[add_bytes_count++] = 0x48; 
          add_bytes[add_bytes_count++] = 0x01; 
          add(register_left, destination_register, add_bytes); 
 
-         for (int n = 0; n < add_bytes_length; n++) {
-            function_context->code[function_context->pc++] = prepare_bytes[n]; 
+         if (strcmp(register_right, destination_register) != 0) {
+           for (int n = 0; n < add_bytes_length; n++) {
+              function_context->code[function_context->pc++] = prepare_bytes[n]; 
+           }
          }
          for (int n = 0; n < add_bytes_length; n++) {
             function_context->code[function_context->pc++] = add_bytes[n]; 
