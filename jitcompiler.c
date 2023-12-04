@@ -577,7 +577,7 @@ char * _gettok(struct ParseResult *parse_result, char * caller) {
         }
         identifier[count++] = parse_result->last_char[0];
         // printf("quote %s %s [%s] Matched pattern for identifier [%s] %s\n", caller, pattern, parse_result->last_char, identifier, subject); 
-        free(parse_result->last_char); 
+        // free(parse_result->last_char); 
         parse_result->last_char = charget(parse_result);
         subject = (PCRE2_SPTR)parse_result->last_char;
       }
@@ -788,7 +788,7 @@ multiply 7572685654880005
         method_call_expressions[0] = owner[owner_size - 1];
         // the identifier of a method call is metadata and doesn't need to be evaluated
         method_call_expressions[0]->tag = IS_AST_METADATA;
-        struct ExpressionSource * expression_exps = malloc(sizeof(struct ExpressionSource)); 
+        struct ExpressionSource * expression_exps = calloc(1, sizeof(struct ExpressionSource)); 
         struct StatementSource * newstatementsource2 = malloc(sizeof(struct StatementSource));
         // struct Expression ** expressions = calloc(100, sizeof(struct Expression*)); 
         struct Expression * method_call = malloc(sizeof(struct Expression));
@@ -796,7 +796,7 @@ multiply 7572685654880005
         // statements[statementsource->statements - 1]->expression_length = 1;
         method_call->id = parse_result->current_id++;
         method_call->type = METHOD_CALL;
-        // method_call->stringvalue = token;
+        method_call->stringvalue = "method";
         method_call->exps = _newstatements;
         method_call->statements = newstatementsource2;
         newstatementsource2->statements = 1;
@@ -819,7 +819,7 @@ multiply 7572685654880005
           int pos = parse_result->pos;
           if (strcmp(parse_result->last_token, "close") != 0 /*&& strcmp(gettok(parse_result, "commacheck"), "comma") != 0 */) {
             
-            free(parse_result->last_char);
+            // free(parse_result->last_char);
             parse_result->last_char = before;
             parse_result->pos = pos;
           } else {
@@ -934,7 +934,7 @@ struct ParseResult * continue_parse(
         memcpy(before, parse_result->last_char, 2); 
         int pos = parse_result->pos;
         if (strcmp(gettok(parse_result, "commacheck"), "comma") != 0) {
-          free(parse_result->last_char);
+          // free(parse_result->last_char);
           parse_result->last_char = before;
           parse_result->pos = pos;
         }
@@ -1113,8 +1113,8 @@ struct Function * resolve_name(struct CodeGenContext * context, char * function_
 }
 
 int add(char * register_left, char * destination_register, char * add_bytes) {
-         unsigned long reg_left = hash(destination_register);
-         unsigned long reg_right = hash(register_left);
+         unsigned long reg_left = hash(register_left);
+         unsigned long reg_right = hash(destination_register);
          switch (reg_right) {
            case 193504464: // case rax 
              switch (reg_left) {
@@ -1383,8 +1383,8 @@ int writecode(struct CodeGenContext * context, struct FunctionContext * function
          char * prepare_bytes = malloc(add_bytes_length);
          int prepare_bytes_count = 0;
           
-         prepare_bytes[prepare_bytes_count++] = 0x48; 
-         prepare_bytes[prepare_bytes_count++] = 0x01; 
+         // prepare_bytes[prepare_bytes_count++] = 0x48; 
+         // prepare_bytes[prepare_bytes_count++] = 0x01; 
          move_var(register_right, destination_register, prepare_bytes); 
 
          add_bytes[add_bytes_count++] = 0x48; 
@@ -1421,6 +1421,8 @@ int writecode(struct CodeGenContext * context, struct FunctionContext * function
              for (int y = 0 ; y < anf->assignment_pair->assignments[x].reference_length; y++) {
                printf("reference %s\n", anf->assignment_pair->assignments[x].references[y]); 
              }
+             printf("Register for identifier is \n");
+             printf("%s", anf->assignment_pair->assignments[x].chosen_register);
              mov_dest(anf->assignment_pair->assignments[x].chosen_register, bytes);
              int * immediate = malloc(size_of_immediate);    
              char * immediate_bytes = (char*)&immediate; 
@@ -1591,15 +1593,7 @@ int precolour_method_call(struct Expression *expression, char ** real_registers,
     }
 }
 
-int precolour_anf(struct NormalForm *anfs) {
-  char ** real_registers = calloc(100, sizeof(char*));
-  int register_count = 0; 
-  real_registers[register_count++] = "rax";
-  real_registers[register_count++] = "rcx";
-  real_registers[register_count++] = "rdx";
-  real_registers[register_count++] = "rbx";
-  real_registers[register_count++] = "rsi";
-  real_registers[register_count++] = "rdi";
+int precolour_anf(struct NormalForm *anfs, char ** real_registers, int register_count) {
   for (int x = 0 ; x < anfs->count; x++) {
         switch (anfs->expressions[x]->type) {
           case METHOD_CALL:
@@ -1636,7 +1630,7 @@ struct AssignmentPair * assignregisters(struct NormalForm *anf) {
     }
     switch (anf->expressions[x]->type) {
       case METHOD_CALL:
-        char * key = malloc(sizeof(char) * 50);
+        char * key = calloc(100, sizeof(char));
         sprintf(key, "t%d", counter++);
         printf("Method call Assigning %d to variable %s\n", anf->expressions[x]->id, key);
         assignments[assignment_counter].type = MULTIARY;
@@ -1657,7 +1651,7 @@ struct AssignmentPair * assignregisters(struct NormalForm *anf) {
         int first = 0;
         int reference_count = 0;
         int reference_variable_length_count = 0;
-        char ** references = calloc(100, sizeof(char));
+        char ** references = calloc(100, sizeof(char*));
         int ** reference_variable_length = calloc(100, sizeof(int*));
         struct Expression ** reference_expressions = calloc(100, sizeof(struct Expression*));
         int reference_expressions_count = 0;
@@ -1709,7 +1703,7 @@ struct AssignmentPair * assignregisters(struct NormalForm *anf) {
           assignments[assignment_counter].expression = anf->expressions[x];
           assignments[assignment_counter].symbol = anf->expressions[x]->symbol;
           assignments[assignment_counter].variable = anf->expressions[x]->stringvalue;
-          char * _identifier_variable_key = malloc(sizeof(char)*100);
+          char * _identifier_variable_key = calloc(1, sizeof(char)*100);
           sprintf(_identifier_variable_key, "%d-%s", anf->expressions[x]->id, anf->expressions[x]->stringvalue);
           assignments[assignment_counter].variable_key = _identifier_variable_key;
           assignments[assignment_counter].variable_length = strlen(assignments[assignment_counter].variable);
@@ -1757,7 +1751,7 @@ struct AssignmentPair * assignregisters(struct NormalForm *anf) {
         sprintf(key2, "t%d", counter++);
         memset(text4, '\0', 100);
         int member_reference_count = 0;
-        char ** member_references = calloc(100, sizeof(char));
+        char ** member_references = calloc(100, sizeof(char*));
         struct Expression ** member_reference_expressions = calloc(100, sizeof(struct Expression*));
         int ** member_reference_variable_length = calloc(100, sizeof(int));
         int member_reference_variable_length_count = 0;
@@ -1780,7 +1774,7 @@ struct AssignmentPair * assignregisters(struct NormalForm *anf) {
         assignment_counter++;
         break;
       case ADD:
-        char * key3 = malloc(sizeof(char) * 50);
+        char * key3 = malloc(sizeof(char) * 100);
         sprintf(key3, "t%d", counter++);
         printf("Add operation Assigning %d to variable %s\n", anf->expressions[x]->id, key3);
 
@@ -1789,7 +1783,7 @@ struct AssignmentPair * assignregisters(struct NormalForm *anf) {
         assignments[assignment_counter].expression = anf->expressions[x];
         assignments[assignment_counter].variable_length = strlen(key3);
         char * _add_variable_key = malloc(sizeof(char)*100);
-        sprintf(_add_variable_key, "%d-%s", anf->expressions[x]->id, key2);
+        sprintf(_add_variable_key, "%d-%s", anf->expressions[x]->id, key3);
         assignments[assignment_counter].variable_key = _add_variable_key;
         assignments[assignment_counter].symbol = anf->expressions[x]->symbol;
         anf->expressions[x]->variable = key3;
@@ -1800,7 +1794,7 @@ struct AssignmentPair * assignregisters(struct NormalForm *anf) {
         int add_reference_count = 0;
         int add_reference_variable_length_count = 0;
         int add_reference_expressions_count = 0;
-        char ** add_references = calloc(100, sizeof(char));
+        char ** add_references = calloc(200, sizeof(char*));
         struct Expression ** add_reference_expressions = calloc(100, sizeof(struct Expression*));
         int ** add_reference_variable_length = calloc(100, sizeof(int));
         int * left_length = malloc(sizeof(int));
@@ -1836,11 +1830,11 @@ struct AssignmentPair * assignregisters(struct NormalForm *anf) {
         printf("Return operation Assigning %d to variable %s\n", anf->expressions[x]->id, key4);
 
         assignments[assignment_counter].type = UNARY;
-        assignments[assignment_counter].variable = key3;
+        assignments[assignment_counter].variable = key4;
         assignments[assignment_counter].expression = anf->expressions[x];
         assignments[assignment_counter].variable_length = strlen(key3);
         char * _return_variable_key = malloc(sizeof(char)*100);
-        sprintf(_return_variable_key, "%d-%s", anf->expressions[x]->id, key2);
+        sprintf(_return_variable_key, "%d-%s", anf->expressions[x]->id, key4);
         assignments[assignment_counter].variable_key = _return_variable_key;
         assignments[assignment_counter].symbol = anf->expressions[x]->symbol;
         anf->expressions[x]->variable = key3;
@@ -1850,7 +1844,7 @@ struct AssignmentPair * assignregisters(struct NormalForm *anf) {
         int return_reference_count = 0;
         int return_reference_variable_length_count = 0;
         int return_reference_expressions_count = 0;
-        char ** return_references = calloc(100, sizeof(char));
+        char ** return_references = calloc(100, sizeof(char*));
         struct Expression ** return_reference_expressions = calloc(100, sizeof(struct Expression*));
         int ** return_reference_variable_length = calloc(100, sizeof(int));
         int * return_left_length = malloc(sizeof(int));
@@ -1883,7 +1877,7 @@ struct AssignmentPair * assignregisters(struct NormalForm *anf) {
   for (int x = 0 ; x < assignment_counter; x++) {
     printf("%s\n", assignments[x].text);
   }
-  struct AssignmentPair * assignment_pair = malloc(sizeof(struct AssignmentPair));
+  struct AssignmentPair * assignment_pair = calloc(1, sizeof(struct AssignmentPair));
   assignment_pair->assignments = assignments;
   assignment_pair->assignment_length = assignment_counter;
   anf->assignment_pair = assignment_pair;
@@ -2011,23 +2005,15 @@ int assignrealregisters(struct NormalForm *anf, struct RangePair *range_pair, st
   
 }
 
-int assign_all_registers(struct NormalForm *anf, struct AssignmentPair *assignment_pair) {
+int assign_all_registers(struct NormalForm *anf, struct AssignmentPair *assignment_pair, char ** real_registers, int register_count) {
   struct RangePair *range_pair = liveranges(anf, assignment_pair);
-  char ** real_registers = calloc(100, sizeof(char*));
-  int register_count = 0; 
-  real_registers[register_count++] = "rax";
-  real_registers[register_count++] = "rcx";
-  real_registers[register_count++] = "rdx";
-  real_registers[register_count++] = "rbx";
-  real_registers[register_count++] = "rsi";
-  real_registers[register_count++] = "rdi";
 
   assignrealregisters(anf, range_pair, assignment_pair, real_registers, register_count);
 
 }
 
 
-int do_graph_colouring(struct NormalForm *anfs, struct AssignmentPair *assignment_pair) {
+int do_graph_colouring(struct NormalForm *anfs, struct AssignmentPair *assignment_pair, char ** real_registers, int register_count) {
   struct hashmap * forward_links = calloc(1, sizeof(struct hashmap));
 
   printf("### DOING GRAPH COLOURING\n");
@@ -2035,7 +2021,9 @@ int do_graph_colouring(struct NormalForm *anfs, struct AssignmentPair *assignmen
   for (int x = 0 ; x < assignment_pair->assignment_length; x++) {
     char * var_key = assignment_pair->assignments[x].variable_key;
     printf("Variable %d: %s \n", x, var_key);
+    
     if (assignment_pair->assignments[x].reference_length == 0) {
+      printf("no references\n");
       char * from = var_key;
       struct Edges *new_edges = calloc(1, sizeof(struct Edges));
       new_edges->from = &assignment_pair->assignments[x];
@@ -2043,6 +2031,7 @@ int do_graph_colouring(struct NormalForm *anfs, struct AssignmentPair *assignmen
       new_edges->edges = calloc(100, sizeof(struct Edge*));
       set_hashmap(forward_links, from, (uintptr_t) new_edges, strlen(from));
     }
+    
     for (int k = 0 ; k < assignment_pair->assignments[x].reference_length ; k++) {
       printf("Found reference %s to %s\n", var_key, assignment_pair->assignments[x].references[k]);
       char * from = var_key;
@@ -2078,20 +2067,12 @@ int do_graph_colouring(struct NormalForm *anfs, struct AssignmentPair *assignmen
     }
     // set_hashmap(forward_links, range_pair->ranges[x]->variable, (uintptr_t) 0, range_pair->ranges[x]->variable_length);
   }
-  char ** real_registers = calloc(100, sizeof(char*));
-  int register_count = 0; 
-  real_registers[register_count++] = "rax";
-  real_registers[register_count++] = "rcx";
-  real_registers[register_count++] = "rdx";
-  real_registers[register_count++] = "rbx";
-  real_registers[register_count++] = "rsi";
-  real_registers[register_count++] = "rdi";
   struct Edges **edge_stack = calloc(100, sizeof(struct Edges*));
   int stack_count = 0;
   for (int x = 0 ; x < MAX_SIZE ; x++) {
     if (forward_links->value[x].set == 1) {
       struct Edges *edge = (struct Edges *) forward_links->value[x].value;
-      if (edge->edge_count > 0 && edge->edge_count < register_count) {
+      if (edge->edge_count >= 0 && edge->edge_count < register_count) {
         printf("FOUND EDGE WITH EDGE COUNT < %d %s\n", register_count, edge->from->variable);
         dump_expressions(0, edge->from->expression->exps[0]);
         edge_stack[stack_count++] = edge;
@@ -2111,6 +2092,7 @@ int do_graph_colouring(struct NormalForm *anfs, struct AssignmentPair *assignmen
   int available_len = 0;
   int available_index = 0;
   int stack_index = stack_count;
+  printf("Register colouring starting with %d items\n", stack_index);
   while (stack_index > 0) {
     printf("###### GRAPH COLOUR STACK ITEM\n");
     if (available_len == 0) {
@@ -2118,6 +2100,7 @@ int do_graph_colouring(struct NormalForm *anfs, struct AssignmentPair *assignmen
         available[x] = real_registers[x];
       }
       available_len = register_count;
+      available_index = 0;
     } 
     printf("#### %d registers available\n", available_len);
     for (int x = 0 ; x < available_len; x++) {
@@ -2128,6 +2111,7 @@ int do_graph_colouring(struct NormalForm *anfs, struct AssignmentPair *assignmen
     stack_index--; 
 
     struct Edges * item = edge_stack[stack_index];
+    printf("STACK ITEM\n");
     dump_expressions(0, item->from->expression->exps[0]);
     if (item->from->chosen_register == NULL) {
       printf("%s Doesn't have a register assigned\n", item->from->variable);
@@ -2142,6 +2126,7 @@ int do_graph_colouring(struct NormalForm *anfs, struct AssignmentPair *assignmen
       printf("Vertice is precoloured %s %s\n", item->from->variable, item->from->chosen_register);
       int removed_pos = -1;
       available_len--; 
+      // item->from->expression->chosen_register = item->from->chosen_register;
       for (int x = 0 ; x < available_len; x++) {
         if (strcmp(item->from->chosen_register, available[x]) == 0) {
           printf("Found removed register in %d\n", x);
@@ -2166,13 +2151,13 @@ int do_graph_colouring(struct NormalForm *anfs, struct AssignmentPair *assignmen
   printf("### END GRAPH COLOURING\n");
 }
 
-int machine_code(struct ANF *anfs) {
+int machine_code(struct ANF *anfs, char ** real_registers, int register_count) {
   int pc = 0;
-  assign_all_registers(anfs->anf, anfs->anf->assignment_pair);
-  do_graph_colouring(anfs->anf, anfs->anf->assignment_pair);
+  assign_all_registers(anfs->anf, anfs->anf->assignment_pair, real_registers, register_count);
+  do_graph_colouring(anfs->anf, anfs->anf->assignment_pair, real_registers, register_count);
   for (int x = 0 ; x < anfs->function_length; x++) {
-    assign_all_registers(anfs->functions[x]->anf, anfs->functions[x]->anf->assignment_pair);
-    do_graph_colouring(anfs->functions[x]->anf, anfs->functions[x]->anf->assignment_pair);
+    assign_all_registers(anfs->functions[x]->anf, anfs->functions[x]->anf->assignment_pair, real_registers, register_count);
+    do_graph_colouring(anfs->functions[x]->anf, anfs->functions[x]->anf->assignment_pair, real_registers, register_count);
   }
   printf("Codegen for main\n");
   codegen(anfs);  
@@ -2214,6 +2199,14 @@ int main(int argc, char *argv[])
   printf("pagesize: %d\n", getpagesize());
   printf("\n");
   
+  char ** real_registers = calloc(100, sizeof(char*));
+  int register_count = 0; 
+  real_registers[register_count++] = "rdi";
+  real_registers[register_count++] = "rsi";
+  real_registers[register_count++] = "rax";
+  real_registers[register_count++] = "rcx";
+  real_registers[register_count++] = "rdx";
+  real_registers[register_count++] = "rbx";
 
   // fgets(buffer, sizeof(buffer), stdin);
 
@@ -2257,11 +2250,11 @@ int main(int argc, char *argv[])
     dump_anf(anfs->anf);
     printf("Assigning registers\n");
     // coalesce_registers(anfs->anf);
-    precolour_anf(anfs->anf);
+    precolour_anf(anfs->anf, real_registers, register_count);
     assignregisters(anfs->anf); 
     for (int x = 0 ; x < anfs->function_length; x++) {
       // coalesce_registers(anfs->functions[x]->anf);
-      precolour_anf(anfs->functions[x]->anf);
+      precolour_anf(anfs->functions[x]->anf, real_registers, register_count);
       assignregisters(anfs->functions[x]->anf); 
     }
     FILE *mapsfd = fopen("/proc/self/maps", "r");
@@ -2289,7 +2282,7 @@ int main(int argc, char *argv[])
     } 
     printf("heap start is %llx\n", heap_start);
     anfs->heap_start = heap_start;
-    machine_code(anfs);
+    machine_code(anfs, real_registers, register_count);
     int (*jmp_func)(void) = (void *) anfs->codegen_context->main_function_context->code;
 
     printf("Executing machine code at %p\n", jmp_func);

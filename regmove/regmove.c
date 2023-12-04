@@ -1,9 +1,11 @@
 
+#include <stdio.h>
 #include "common.h"
 int move_var(char * source_register, char * destination_register, char * bytes) {
   unsigned long source = hash(source_register);
   unsigned long destination = hash(destination_register);
   int bytes_count = 0;
+  printf("Moving from %s to %s", source_register, destination_register);
   switch (source) {
 
     case 193502808: /* r10 */

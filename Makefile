@@ -19,6 +19,7 @@ $(binaries): $(opcodes)
 clean: $(binaries)
 	@rm $(binaries) $(binaries_c)
 	@rm $(programs_c)
+	@rm jitcompiler
 
 $(programs_binaries): $(programs_c) regmove/regmove.c
 	gcc $(basename $@).c common.c regmove/regmove.c -o $(basename $@) -g -l:libpcre2-8.a -I pcre2-10.42/ -I.
@@ -29,9 +30,9 @@ regmove/regmove.c:
 	python3 filter.py opcodes/movreg_*-text > regmove/regmove.c ; \
 
 inspect:
-	objdump -b binary -Mintel,x86-64 -D main.bin -m i386 ; \
-	objdump -b binary -Mintel,x86-64 -D x.bin -m i386 ; \
-	objdump -b binary -Mintel,x86-64 -D talker.bin -m i386
+	objdump -b binary -Matt,x86-64 -D main.bin -m i386 ; \
+	objdump -b binary -Matt,x86-64 -D x.bin -m i386 ; \
+	objdump -b binary -Matt,x86-64 -D talker.bin -m i386
 
 
 
