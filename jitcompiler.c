@@ -48,6 +48,7 @@ It is barebones and a toy.
 #define MAX_SIZE 1024
 #include <fcntl.h>
 #include <sys/stat.h>
+#include "common.h"
 
 int compile_stub(int function_id);
 
@@ -121,18 +122,6 @@ struct work_def {
   int count;
 };
 
-// from https://stackoverflow.com/a/7666577/10662977
-unsigned long
-hash(unsigned char *str)
-{
-    unsigned long hash = 5381;
-    int c;
-
-    while (c = *str++)
-        hash = ((hash << 5) + hash) + c; /* hash * 33 + c */
-
-    return hash;
-}
 
 int set_hashmap(struct hashmap *hashmap, char key[], uintptr_t value, int key_length) {
     unsigned long hsh = hash(key) % MAX_SIZE;
@@ -1031,10 +1020,11 @@ struct ParseResult* parse(int length, char * program_body) {
   exps->expression_length = 0;
   exps->current_into = &root;
   printf("FIRST INTO %p\n", root); 
-  char * keywords[] = {"member", "function", "if", "return", "open", "close", "comma", "add", "subtract", "multiply", "rax", "rbx", "rcx", "rdx", "rsi", "rdi"};
+  char * keywords[] = {"member", "function", "if", "return", "open", "close", "comma", "add", "subtract", "multiply", "rax", "rbx", "rcx", "rdx", "rsi", "rdi", "rsp", "r8", "r9", "r10", "r11", "r12", "r13", "r14", "r15"};
   printf("HASH TABLE %ld\n", sizeof(keywords));
   for (int x = 0 ; x < sizeof(keywords) / sizeof(keywords[0]); x++) {
-    printf("%s %ld\n", keywords[x], hash(keywords[x]));
+    printf("case %ld: /* %s */ \n", hash(keywords[x]), keywords[x]);
+    printf("break;\n");
   }
   printf("\n");
 
@@ -1121,6 +1111,153 @@ struct Function * resolve_name(struct CodeGenContext * context, char * function_
     }
   }
 }
+
+int add(char * register_left, char * destination_register, char * add_bytes) {
+         unsigned long reg_left = hash(destination_register);
+         unsigned long reg_right = hash(register_left);
+         switch (reg_right) {
+           case 193504464: // case rax 
+             switch (reg_left) {
+               case 193504497: // case rbx 
+                 add_bytes[2] = 0xd8;
+               break;
+               case 193504530: // case rcx 
+                 add_bytes[2] = 0xc8;
+               break;
+               case 193504563: // case rdx 
+                 add_bytes[2] = 0xd0;
+               break;
+               case 193505043: // case rsi 
+                 add_bytes[2] = 0xf0;
+               break;
+               case 193504548: // case rdi 
+                 add_bytes[2] = 0xf8;
+               break;
+             }
+           break;
+           case 193504497: // case rbx 
+             switch (reg_left) {
+               case 193504464: // case rax 
+                 add_bytes[2] = 0xc3;
+               break;
+               case 193504530: // case rcx 
+                 add_bytes[2] = 0xcb;
+               break;
+               case 193504563: // case rdx 
+                 add_bytes[2] = 0xd3;
+               break;
+               case 193505043: // case rsi 
+                 add_bytes[2] = 0xf3;
+               break;
+               case 193504548: // case rdi 
+                 add_bytes[2] = 0xfb;
+               break;
+             }
+           break;
+           case 193504530: // case rcx 
+             switch (reg_left) {
+               case 193504464: // case rax 
+                 add_bytes[2] = 0xc1;
+               break;
+               case 193504497: // case rbx 
+                 add_bytes[2] = 0xd9;
+               break;
+               case 193504563: // case rdx 
+                 add_bytes[2] = 0xd1;
+               break;
+               case 193505043: // case rsi 
+                 add_bytes[2] = 0xf1;
+               break;
+               case 193504548: // case rdi 
+                 add_bytes[2] = 0xf9;
+               break;
+             }
+           break;
+           case 193504563: // case rdx 
+             switch (reg_left) {
+               case 193504464: // case rax 
+                 add_bytes[2] = 0xc2;
+               break;
+               case 193504497: // case rbx 
+                 add_bytes[2] = 0xda;
+               break;
+               case 193504530: // case rcx 
+                 add_bytes[2] = 0xca;
+               break;
+               case 193505043: // case rsi 
+                 add_bytes[2] = 0xf2;
+               break;
+               case 193504548: // case rdi 
+                 add_bytes[2] = 0xfa;
+               break;
+             }
+           break;
+           case 193505043: // case rsi 
+             switch (reg_left) {
+               case 193504464: // case rax 
+                 add_bytes[2] = 0xc6;
+               break;
+               case 193504497: // case rbx 
+                 add_bytes[2] = 0xde;
+               break;
+               case 193504530: // case rcx 
+                 add_bytes[2] = 0xce;
+               break;
+               case 193504563: // case rdx 
+                 add_bytes[2] = 0xd6;
+               break;
+               case 193504548: // case rdi 
+                 add_bytes[2] = 0xfe;
+               break;
+             }
+           break;
+           case 193504548: // case rdi 
+             switch (reg_left) {
+               case 193504464: // case rax 
+                 add_bytes[2] = 0xc7;
+               break;
+               case 193504497: // case rbx 
+                 add_bytes[2] = 0xdf;
+               break;
+               case 193504530: // case rcx 
+                 add_bytes[2] = 0xcf;
+               break;
+               case 193504563: // case rdx 
+                 add_bytes[2] = 0xd7;
+               break;
+               case 193505043: // case rsi 
+                 add_bytes[2] = 0xf7;
+               break;
+             }
+           break;
+         }
+
+}
+
+int mov_dest(char * destination, char * bytes) {
+     unsigned long reg = hash(destination);
+     switch (reg) {
+       case 193504464: // case rax 
+         bytes[2] = 0xc0;
+       break;
+       case 193504497: // case rbx 
+         bytes[2] = 0xc3;
+       break;
+       case 193504530: // case rcx 
+         bytes[2] = 0xc1;
+       break;
+       case 193504563: // case rdx 
+         bytes[2] = 0xc2;
+       break;
+       case 193505043: // case rsi 
+         bytes[2] = 0xc6;
+       break;
+       case 193504548: // case rdi 
+         bytes[2] = 0xc7;
+       break;
+     }
+}
+
 
 int writecode(struct CodeGenContext * context, struct FunctionContext * function_context, struct NormalForm * anf) {
   for (int x = 0 ; x < anf->assignment_pair->assignment_length; x++) {
@@ -1242,128 +1379,21 @@ int writecode(struct CodeGenContext * context, struct FunctionContext * function
            register_left = register_right;
          }
          
+         printf("%d operand move bytes length\n", add_bytes_length);
+         char * prepare_bytes = malloc(add_bytes_length);
+         int prepare_bytes_count = 0;
+          
+         prepare_bytes[prepare_bytes_count++] = 0x48; 
+         prepare_bytes[prepare_bytes_count++] = 0x01; 
+         move_var(register_right, destination_register, prepare_bytes); 
+
          add_bytes[add_bytes_count++] = 0x48; 
          add_bytes[add_bytes_count++] = 0x01; 
-          
-         unsigned long reg_left = hash(destination_register);
-         unsigned long reg_right = hash(register_left);
-         switch (reg_right) {
-           case 193504464: // case rax 
-             switch (reg_left) {
-               case 193504497: // case rbx 
-                 add_bytes[2] = 0xd8;
-               break;
-               case 193504530: // case rcx 
-                 add_bytes[2] = 0xc8;
-               break;
-               case 193504563: // case rdx 
-                 add_bytes[2] = 0xd0;
-               break;
-               case 193505043: // case rsi 
-                 add_bytes[2] = 0xf0;
-               break;
-               case 193504548: // case rdi 
-                 add_bytes[2] = 0xf8;
-               break;
-             }
-           break;
-           case 193504497: // case rbx 
-             switch (reg_left) {
-               case 193504464: // case rax 
-                 add_bytes[2] = 0xc3;
-               break;
-               case 193504530: // case rcx 
-                 add_bytes[2] = 0xcb;
-               break;
-               case 193504563: // case rdx 
-                 add_bytes[2] = 0xd3;
-               break;
-               case 193505043: // case rsi 
-                 add_bytes[2] = 0xf3;
-               break;
-               case 193504548: // case rdi 
-                 add_bytes[2] = 0xfb;
-               break;
-             }
-           break;
-           case 193504530: // case rcx 
-             switch (reg_left) {
-               case 193504464: // case rax 
-                 add_bytes[2] = 0xc1;
-               break;
-               case 193504497: // case rbx 
-                 add_bytes[2] = 0xd9;
-               break;
-               case 193504563: // case rdx 
-                 add_bytes[2] = 0xd1;
-               break;
-               case 193505043: // case rsi 
-                 add_bytes[2] = 0xf1;
-               break;
-               case 193504548: // case rdi 
-                 add_bytes[2] = 0xf9;
-               break;
-             }
-           break;
-           case 193504563: // case rdx 
-             switch (reg_left) {
-               case 193504464: // case rax 
-                 add_bytes[2] = 0xc2;
-               break;
-               case 193504497: // case rbx 
-                 add_bytes[2] = 0xda;
-               break;
-               case 193504530: // case rcx 
-                 add_bytes[2] = 0xca;
-               break;
-               case 193505043: // case rsi 
-                 add_bytes[2] = 0xf2;
-               break;
-               case 193504548: // case rdi 
-                 add_bytes[2] = 0xfa;
-               break;
-             }
-           break;
-           case 193505043: // case rsi 
-             switch (reg_left) {
-               case 193504464: // case rax 
-                 add_bytes[2] = 0xc6;
-               break;
-               case 193504497: // case rbx 
-                 add_bytes[2] = 0xde;
-               break;
-               case 193504530: // case rcx 
-                 add_bytes[2] = 0xce;
-               break;
-               case 193504563: // case rdx 
-                 add_bytes[2] = 0xd6;
-               break;
-               case 193504548: // case rdi 
-                 add_bytes[2] = 0xfe;
-               break;
-             }
-           break;
-           case 193504548: // case rdi 
-             switch (reg_left) {
-               case 193504464: // case rax 
-                 add_bytes[2] = 0xc7;
-               break;
-               case 193504497: // case rbx 
-                 add_bytes[2] = 0xdf;
-               break;
-               case 193504530: // case rcx 
-                 add_bytes[2] = 0xcf;
-               break;
-               case 193504563: // case rdx 
-                 add_bytes[2] = 0xd7;
-               break;
-               case 193505043: // case rsi 
-                 add_bytes[2] = 0xf7;
-               break;
-             }
-           break;
+         add(register_left, destination_register, add_bytes); 
+
+         for (int n = 0; n < add_bytes_length; n++) {
+            function_context->code[function_context->pc++] = prepare_bytes[n]; 
          }
-          
          for (int n = 0; n < add_bytes_length; n++) {
             function_context->code[function_context->pc++] = add_bytes[n]; 
          }
@@ -1391,27 +1421,7 @@ int writecode(struct CodeGenContext * context, struct FunctionContext * function
              for (int y = 0 ; y < anf->assignment_pair->assignments[x].reference_length; y++) {
                printf("reference %s\n", anf->assignment_pair->assignments[x].references[y]); 
              }
-             unsigned long reg = hash(anf->assignment_pair->assignments[x].chosen_register);
-             switch (reg) {
-               case 193504464: // case rax 
-                 bytes[2] = 0xc0;
-               break;
-               case 193504497: // case rbx 
-                 bytes[2] = 0xc3;
-               break;
-               case 193504530: // case rcx 
-                 bytes[2] = 0xc1;
-               break;
-               case 193504563: // case rdx 
-                 bytes[2] = 0xc2;
-               break;
-               case 193505043: // case rsi 
-                 bytes[2] = 0xc6;
-               break;
-               case 193504548: // case rdi 
-                 bytes[2] = 0xc7;
-               break;
-             }
+             mov_dest(anf->assignment_pair->assignments[x].chosen_register, bytes);
              int * immediate = malloc(size_of_immediate);    
              char * immediate_bytes = (char*)&immediate; 
              memcpy(immediate_bytes, &anf->expressions[x]->numbervalue, size_of_immediate);
@@ -1477,7 +1487,7 @@ int compile_stub(int function_id) {
   char filename[100]; 
   sprintf(filename, "%s.bin", function->name);
   FILE * fp = fopen(filename, "wb");  
-  fwrite(function->code, 150, 1, fp);
+  fwrite(function->code, getpagesize(), 1, fp);
   fflush(fp);
   fclose(fp);
   int (*jmp_func)(void) = (void *) address;
@@ -1554,7 +1564,7 @@ int codegen(struct ANF *anfs) {
   mprotect(main_write_region, getpagesize(), PROT_READ | PROT_EXEC);
   dump_machine_code("Main", main_write_region);
   FILE * fp = fopen("main.bin", "wb");  
-  fwrite(main_function_context->code, 150, 1, fp);
+  fwrite(main_function_context->code, getpagesize(), 1, fp);
   fflush(fp);
   fclose(fp);
   printf("\n");
@@ -2146,9 +2156,9 @@ int do_graph_colouring(struct NormalForm *anfs, struct AssignmentPair *assignmen
 
       }
     }  
-    
-    
   }
+
+
   for (int x = 0 ; x < assignment_pair->assignment_length; x++) {
     printf("%s register = %s\n", assignment_pair->assignments[x].variable, assignment_pair->assignments[x].chosen_register);
   }
@@ -2198,6 +2208,11 @@ int dump_anf(struct NormalForm *anf) {
 
 int main(int argc, char *argv[])
 {
+  printf("amd64 JIT by Samuel Michael Squire\n"); 
+  printf("\thttps://github.com/samsquire/compiler\n");
+  printf("\n");
+  printf("pagesize: %d\n", getpagesize());
+  printf("\n");
   
 
   // fgets(buffer, sizeof(buffer), stdin);
@@ -2241,9 +2256,11 @@ int main(int argc, char *argv[])
     printf("ANF for main\n");
     dump_anf(anfs->anf);
     printf("Assigning registers\n");
+    // coalesce_registers(anfs->anf);
     precolour_anf(anfs->anf);
     assignregisters(anfs->anf); 
     for (int x = 0 ; x < anfs->function_length; x++) {
+      // coalesce_registers(anfs->functions[x]->anf);
       precolour_anf(anfs->functions[x]->anf);
       assignregisters(anfs->functions[x]->anf); 
     }
