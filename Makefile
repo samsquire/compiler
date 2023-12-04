@@ -4,7 +4,7 @@ opcodes_c = $(wildcard opcodes/*.c)
 binaries = $(subst .S,,$(opcodes))
 binaries_c = $(subst .c,,$(opcodes_c))
 
-programs_c = $(wildcard *.c)
+programs_c = jitcompiler.c jit.c
 programs_binaries = $(subst .c,,$(programs_c))
 default: make
 
@@ -20,10 +20,13 @@ clean: $(binaries)
 	@rm $(binaries) $(binaries_c)
 	@rm $(programs_c)
 
-$(programs_binaries): $(programs_c) 
-	gcc $(basename $@).c -o $(basename $@) -g -l:libpcre2-8.a -I pcre2-10.42/
+$(programs_binaries): $(programs_c) regmove/regmove.c
+	gcc $(basename $@).c common.c regmove/regmove.c -o $(basename $@) -g -l:libpcre2-8.a -I pcre2-10.42/ -I.
 
 make: $(binaries) $(programs_binaries)
+
+regmove/regmove.c:
+	python3 filter.py opcodes/movreg_*-text > regmove/regmove.c ; \
 
 inspect:
 	objdump -b binary -Mintel,x86-64 -D main.bin -m i386 ; \
