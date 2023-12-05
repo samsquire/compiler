@@ -998,7 +998,7 @@ struct ParseResult * continue_parse(
 
 // rootparse
 struct ParseResult* parse(int length, char * program_body) {
-  struct ParseResult * parse_result = malloc(sizeof(struct ParseResult));
+  struct ParseResult * parse_result = calloc(1, sizeof(struct ParseResult));
   struct ExpressionSource ** statements = malloc(sizeof(struct ExpressionSource*));
   struct ExpressionSource * exps = malloc(sizeof(struct ExpressionSource));
   struct StatementSource * statementsource = malloc(sizeof(struct StatementSource));
@@ -1356,6 +1356,24 @@ int writecode(struct CodeGenContext * context, struct FunctionContext * function
 
          }
          break;
+      case RETURN:
+         printf("Generating return\n");
+         int return_bytes_length = 3;
+         char * return_bytes = calloc(1, return_bytes_length);
+         int return_count = 0;
+         struct Expression * return_expression = anf->expressions[x]->exps[0]->expressions[0];
+         char * register_return = return_expression->chosen_register;
+
+         if (strcmp(register_return, "rax") != 0) {
+           move_var(register_return, "rax", return_bytes); 
+        
+
+           for (int n = 0; n < return_bytes_length; n++) {
+              function_context->code[function_context->pc++] = return_bytes[n]; 
+           }
+         }
+      
+         break;
       case ADD:
          printf("Generating add\n"); 
          int add_size_of_immediate = sizeof(char) * sizeof(int);
@@ -1386,7 +1404,7 @@ int writecode(struct CodeGenContext * context, struct FunctionContext * function
          // prepare_bytes[prepare_bytes_count++] = 0x48; 
          // prepare_bytes[prepare_bytes_count++] = 0x01; 
          
-         if (strcmp(register_right, destination_register) != 0) {
+         if (strcmp(register_right, destination_register) != 0 && strcmp(register_left, destination_register) != 0) {
            printf("moving register right into destination register");
            move_var(register_right, destination_register, prepare_bytes); 
          }
@@ -1395,7 +1413,7 @@ int writecode(struct CodeGenContext * context, struct FunctionContext * function
          add_bytes[add_bytes_count++] = 0x01; 
          add(register_left, destination_register, add_bytes); 
 
-         if (strcmp(register_right, destination_register) != 0) {
+         if (strcmp(register_right, destination_register) != 0 && strcmp(register_left, destination_register) != 0) {
            for (int n = 0; n < add_bytes_length; n++) {
               function_context->code[function_context->pc++] = prepare_bytes[n]; 
            }
@@ -2014,7 +2032,7 @@ int assignrealregisters(struct NormalForm *anf, struct RangePair *range_pair, st
 int assign_all_registers(struct NormalForm *anf, struct AssignmentPair *assignment_pair, char ** real_registers, int register_count) {
   struct RangePair *range_pair = liveranges(anf, assignment_pair);
 
-  assignrealregisters(anf, range_pair, assignment_pair, real_registers, register_count);
+  // assignrealregisters(anf, range_pair, assignment_pair, real_registers, register_count);
 
 }
 
