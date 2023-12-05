@@ -69,7 +69,7 @@ int move_var(char * source_register, char * destination_register, char * bytes) 
   unsigned long source = hash(source_register);
   unsigned long destination = hash(destination_register);
   int bytes_count = 0;
-  printf("Moving from %s to %s", source_register, destination_register);
+  printf("Moving from %s to %s\\n", source_register, destination_register);
   switch (source) {""")
 for source, value in opcode_byte_one.items():
   print("""

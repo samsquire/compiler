@@ -20,6 +20,7 @@ clean: $(binaries)
 	@rm $(binaries) $(binaries_c)
 	@rm $(programs_c)
 	@rm jitcompiler
+	@rm regmove/regmove.c
 
 $(programs_binaries): $(programs_c) regmove/regmove.c
 	gcc $(basename $@).c common.c regmove/regmove.c -o $(basename $@) -g -l:libpcre2-8.a -I pcre2-10.42/ -I.
