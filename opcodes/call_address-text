@@ -76,7 +76,9 @@ Disassembly of section .text:
     1124:	e9 77 ff ff ff       	jmp    10a0 <register_tm_clones>
 
 0000000000001129 <main>:
-    1129:	e8 00 00 00 00       	call   112e <hello>
+    1129:	49 bb 40 c7 65 b3 4b 	movabs $0x7f4bb365c740,%r11
+    1130:	7f 00 00 
+    1133:	41 ff d3             	call   *%r11
 
-000000000000112e <hello>:
-    112e:	c3                   	ret
+0000000000001136 <hello>:
+    1136:	c3                   	ret

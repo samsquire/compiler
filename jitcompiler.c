@@ -1268,7 +1268,7 @@ int writecode(struct CodeGenContext * context, struct FunctionContext * function
          char * method_bytes = malloc(call_bytes_length);
          int method_ins_count = 0;
          method_bytes[method_ins_count++] = 0xff; 
-         method_bytes[method_ins_count++] = 0xd0; 
+         method_bytes[method_ins_count++] = 0xd3; 
          char * method_address = malloc(sizeof(char) * 4);
          int method_address_count = 0;
          struct Expression * method_call_expression = anf->assignment_pair->assignments[x].expression;
@@ -1299,9 +1299,9 @@ int writecode(struct CodeGenContext * context, struct FunctionContext * function
              printf("%p %p relative pointer %ld\n", arg1->stringvalue, address, (long) address);
              memcpy(start, &address, 8);
              function_context->pc += 8;
-             // jump location
-             function_context->code[function_context->pc++] = 0x48; 
-             function_context->code[function_context->pc++] = 0xb8; 
+             // jump location, mov $abs, %r11
+             function_context->code[function_context->pc++] = 0x49; 
+             function_context->code[function_context->pc++] = 0xbb; 
 
              char * start2 = function_context->code + function_context->pc; 
              char * address2 = malloc(sizeof(char) * 8);
@@ -1310,7 +1310,7 @@ int writecode(struct CodeGenContext * context, struct FunctionContext * function
              printf("%p %p relative pointer %ld\n", function->code, address2, (long) address2);
              memcpy(start2, &address2, 8);
              function_context->pc += 8;
-             function_context->code[function_context->pc++] = 0x48; 
+             function_context->code[function_context->pc++] = 0x41; 
            
              for (int n = 0 ; n < sizeof(char) * 4; n++) {
                // method_address[method_address_count++] = function->code[n];
@@ -1604,13 +1604,17 @@ int precolour_method_call(struct Expression *expression, char ** real_registers,
         if (current_register >= register_count) {
           printf("WARNING Need to spill\n");
         }
-        char * assigned_register = real_registers[current_register++];
-        expression->exps[n]->expressions[k]->chosen_register = assigned_register;
-        printf("Found expression in method call %d %s %s\n", expression->exps[n]->expressions[k]->type, expression->exps[n]->expressions[k]->stringvalue, assigned_register);
         switch (expression->exps[n]->expressions[k]->type) {
           case METHOD_CALL:
             printf("submethodcall\n");
             precolour_method_call(expression->exps[n]->expressions[k], real_registers, register_count);
+          break;
+         case IDENTIFIER:
+          if (expression->exps[n]->expressions[k]->tag != IS_AST_METADATA) {
+            char * assigned_register = real_registers[current_register++];
+            expression->exps[n]->expressions[k]->chosen_register = assigned_register;
+            printf("Found expression in method call %d %s %s\n", expression->exps[n]->expressions[k]->type, expression->exps[n]->expressions[k]->stringvalue, assigned_register);
+          }
           break;
         }
       }
@@ -2103,14 +2107,6 @@ int do_graph_colouring(struct NormalForm *anfs, struct AssignmentPair *assignmen
       }  
     }
   }
-  for (int x = 0 ; x < anfs->count; x++) {
-        switch (anfs->expressions[x]->type) {
-          case METHOD_CALL:
-            printf("Found method call\n");
-            precolour_method_call(anfs->expressions[x], real_registers, register_count);
-            break;
-        }
-  }
 
   char ** available = calloc(100, sizeof(char*));
   int available_len = 0;
@@ -2227,10 +2223,10 @@ int main(int argc, char *argv[])
   int register_count = 0; 
   real_registers[register_count++] = "rdi";
   real_registers[register_count++] = "rsi";
-  real_registers[register_count++] = "rax";
-  real_registers[register_count++] = "rcx";
   real_registers[register_count++] = "rdx";
+  real_registers[register_count++] = "rcx";
   real_registers[register_count++] = "rbx";
+  real_registers[register_count++] = "rax";
 
   // fgets(buffer, sizeof(buffer), stdin);
 

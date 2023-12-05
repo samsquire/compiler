@@ -1,0 +1,4 @@
+function talker(int a, int b) {
+  return a + b;
+}
+printf("value2: %d\n", talker(8, 9));
