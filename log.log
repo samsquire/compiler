@@ -8,7 +8,7 @@ function talker(int a, int b) {
   return a + b;
 }
 printf("value2: %d\n", talker(8, 9));
-FIRST INTO 0x55edc7a9f8a0
+FIRST INTO 0x55bb6a4dc8a0
 HASH TABLE 200
 case 6953778704349: /* member */ 
 break;
@@ -87,22 +87,22 @@ there are 1 parameters
 commacheck CLOSE TAG
 loopparameterlist CLOSE TAG
 functioncurlyopencheck Skipping whitespace
-function parse INTO 0x55edc7aa0a20functionbodyitem Skipping whitespace
+function parse INTO 0x55bb6a4dda20functionbodyitem Skipping whitespace
 functionbodyitem Skipping whitespace
 functionbodyitem Skipping whitespace
 
 -1 rc is
 Hash for token return is 6953974653989
 functionparse Return statement
-0x55edc7aa0a20
+0x55bb6a4dda20
 functionbodyitem Skipping whitespace
 
 -1 rc is
 Hash for token a is 177670
 functionparse parseexpression Is an identifier a
-identifier expression 0x55edc7aa1df0
-statements 0x55edc7aa1210
-expression location 0 0x55edc7aa1a60
+identifier expression 0x55bb6a4dedf0
+statements 0x55bb6a4de210
+expression location 0 0x55bb6a4dea60
  identifier a 0
 functionbodyitem Skipping whitespace
 Hash for token add is 193486030
@@ -111,9 +111,9 @@ functionbodyitem Skipping whitespace
 -1 rc is
 Hash for token b is 177671
 functionparse parseexpression Is an identifier b
-identifier expression 0x55edc7aa32e0
-statements 0x55edc7aa2af0
-expression location 1 0x55edc7aa2f50
+identifier expression 0x55bb6a4e02e0
+statements 0x55bb6a4dfaf0
+expression location 1 0x55bb6a4dff50
  identifier a 0
  identifier b 0
 functionbodyitem CLOSE expression
@@ -126,12 +126,12 @@ parsebegin Skipping whitespace
 -1 rc is
 printffunctionparse Funcbody Is an identifier printf
 functionparse New position is 0
-identifier INTO 0x55edc7a9f8a0
+identifier INTO 0x55bb6a4dc8a0
 Hash for token open is 6385555319
 open bracket
 OWNER 0
  identifier printf 0
-expression location 1 0x55edc7aa3b90
+expression location 1 0x55bb6a4e0b90
  method call method 0
   identifier printf 0
 Parsing subexpression
@@ -143,9 +143,9 @@ inside a quote
 -1 rc is
 Hash for token value2: %d\n is -2533170842880017663
 exprparse parseexpression Is an identifier value2: %d\n
-identifier expression 0x55edc7aa4e00
-statements 0x55edc7aa4600
-expression location 1 0x55edc7aa4a70
+identifier expression 0x55bb6a4e1e00
+statements 0x55bb6a4e1600
+expression location 1 0x55bb6a4e1a70
  identifier printf 0
  identifier value2: %d\n 0
 Hash for token comma is 210709067314
@@ -155,15 +155,15 @@ functionbodyitem Skipping whitespace
 -1 rc is
 Hash for token talker is 6954047882280
 exprparse parseexpression Is an identifier talker
-identifier expression 0x55edc7aa5710
-statements 0x55edc7aa5190
-expression location 0 0x55edc7aa56b0
+identifier expression 0x55bb6a4e2710
+statements 0x55bb6a4e2190
+expression location 0 0x55bb6a4e26b0
  identifier talker 0
 Hash for token open is 6385555319
 open bracket
 OWNER 0
  identifier talker 0
-expression location 1 0x55edc7aa56b0
+expression location 1 0x55bb6a4e26b0
  method call method 0
   identifier talker 0
 Parsing subexpression
@@ -171,9 +171,9 @@ Parsing subexpression
 -1 rc is
 Hash for token 8 is 177629
 exprparse parseexpression Is an identifier 8
-identifier expression 0x55edc7aadf00
-statements 0x55edc7aa5790
-expression location 1 0x55edc7aadb70
+identifier expression 0x55bb6a4eaf00
+statements 0x55bb6a4e2790
+expression location 1 0x55bb6a4eab70
  identifier talker 0
  identifier 8 8
 Hash for token comma is 210709067314
@@ -183,9 +183,9 @@ functionbodyitem Skipping whitespace
 -1 rc is
 Hash for token 9 is 177630
 exprparse parseexpression Is an identifier 9
-identifier expression 0x55edc7aaeaa0
-statements 0x55edc7aae290
-expression location 0 0x55edc7aae710
+identifier expression 0x55bb6a4ebaa0
+statements 0x55bb6a4eb290
+expression location 0 0x55bb6a4eb710
  identifier 9 9
 functionbodyitem CLOSE TAG
 functionbodyitem CLOSE TAG
@@ -237,13 +237,15 @@ Found expression in method call 5 value2: %d\n rdi
 submethodcall
 Found expression in method call 5 8 rdi
 Found expression in method call 5 9 rsi
-FOUND PRECOLOURED REGISTER 0x55edc5b96549
+Found expression in method call 3 method rsi
+FOUND PRECOLOURED REGISTER 0x55bb68b1d549
 Created a identifier reference
-FOUND PRECOLOURED REGISTER 0x55edc5b9654d
+FOUND PRECOLOURED REGISTER 0x55bb68b1d54d
 Created a identifier reference
 Created a identifier reference
+FOUND PRECOLOURED REGISTER 0x55bb68b1d549
 Method call Assigning 8 to variable t0
-FOUND PRECOLOURED REGISTER 0x55edc5b9654d
+FOUND PRECOLOURED REGISTER 0x55bb68b1d54d
 Created a identifier reference
 Created a identifier reference
 Method call Assigning 5 to variable t2
@@ -265,8 +267,8 @@ t1 <- t0 (ret)
 
 
 from /proc/self/maps:
-55edc7a9e000-55edc7ae0000 rw-p 00000000 00:00 0                          [heap]
-heap start is 55edc7a9e000
+55bb6a4db000-55bb6a51d000 rw-p 00000000 00:00 0                          [heap]
+heap start is 55bb6a4db000
 9
 looking up 9
 key doesn't exist
@@ -312,21 +314,21 @@ Variable 0: 10-9
 Found reference 10-9 to 9
 identifier 9 9
 Forward link to 10-9 NOT found
-0x55edc7ac0ab0
+0x55bb6a4fdab0
 Links to 10-9
 - 9
 Variable 1: 9-8 
 Found reference 9-8 to 8
 identifier 8 8
 Forward link to 9-8 NOT found
-0x55edc7ac0e40
+0x55bb6a4fde40
 Links to 9-8
 - 8
 Variable 2: 7-talker 
 Found reference 7-talker to talker
 identifier talker 0
 Forward link to 7-talker NOT found
-0x55edc7ac11d0
+0x55bb6a4fe1d0
 Links to 7-talker
 - talker
 Variable 3: 8-t0 
@@ -336,7 +338,7 @@ method call method 0
  identifier 8 8
  identifier 9 9
 Forward link to 8-t0 NOT found
-0x55edc7ac15a0
+0x55bb6a4fe5a0
 Links to 8-t0
 - talker
 Found reference 8-t0 to 8
@@ -345,7 +347,7 @@ method call method 0
  identifier 8 8
  identifier 9 9
 Forward link to 8-t0 found
-0x55edc7ac15a0
+0x55bb6a4fe5a0
 Links to 8-t0
 - talker
 - 8
@@ -355,7 +357,7 @@ method call method 0
  identifier 8 8
  identifier 9 9
 Forward link to 8-t0 found
-0x55edc7ac15a0
+0x55bb6a4fe5a0
 Links to 8-t0
 - talker
 - 8
@@ -364,14 +366,14 @@ Variable 4: 6-value2: %d\n
 Found reference 6-value2: %d\n to value2: %d\n
 identifier value2: %d\n 0
 Forward link to 6-value2: %d\n NOT found
-0x55edc7ac1a30
+0x55bb6a4fea30
 Links to 6-value2: %d\n
 - value2: %d\n
 Variable 5: 4-printf 
 Found reference 4-printf to printf
 identifier printf 0
 Forward link to 4-printf NOT found
-0x55edc7ac1dc0
+0x55bb6a4fedc0
 Links to 4-printf
 - printf
 Variable 6: 5-t2 
@@ -384,7 +386,7 @@ method call method 0
   identifier 8 8
   identifier 9 9
 Forward link to 5-t2 NOT found
-0x55edc7ac21d0
+0x55bb6a4ff1d0
 Links to 5-t2
 - printf
 Found reference 5-t2 to value2: %d\n
@@ -396,7 +398,7 @@ method call method 0
   identifier 8 8
   identifier 9 9
 Forward link to 5-t2 found
-0x55edc7ac21d0
+0x55bb6a4ff1d0
 Links to 5-t2
 - printf
 - value2: %d\n
@@ -409,7 +411,7 @@ method call method 0
   identifier 8 8
   identifier 9 9
 Forward link to 5-t2 found
-0x55edc7ac21d0
+0x55bb6a4ff1d0
 Links to 5-t2
 - printf
 - value2: %d\n
@@ -430,54 +432,53 @@ Register colouring starting with 7 items
 #### 6 registers available
  - rdi - rsi - rdx - rcx - rbx - rax
 STACK ITEM
-Vertice is precoloured value2: %d\n rdi
+Vertice is precoloured variable value2: %d\n 5 0
+Vertice is precoloured register rdi
 Found removed register in 0
 ###### GRAPH COLOUR STACK ITEM
 #### 5 registers available
  - rsi - rdx - rcx - rbx - rax
 STACK ITEM
-talker Doesn't have a register assigned
-Chosen rsi
+###### GRAPH COLOUR STACK ITEM
+#### 5 registers available
+ - rsi - rdx - rcx - rbx - rax
+STACK ITEM
+Vertice is precoloured variable 8 5 0
+Vertice is precoloured register rdi
 ###### GRAPH COLOUR STACK ITEM
 #### 4 registers available
  - rsi - rdx - rcx - rbx
 STACK ITEM
-Vertice is precoloured 8 rdi
-###### GRAPH COLOUR STACK ITEM
-#### 3 registers available
- - rsi - rdx - rcx
-STACK ITEM
 identifier talker 0
 identifier 8 8
-t1 Doesn't have a register assigned
-Chosen rdx
+Vertice is precoloured variable t1 3 0
+Vertice is precoloured register rsi
+Found removed register in 0
 ###### GRAPH COLOUR STACK ITEM
-#### 2 registers available
- - rsi - rdx
+#### 3 registers available
+ - rdx - rcx - rbx
 STACK ITEM
 identifier printf 0
 identifier value2: %d\n 0
 t3 Doesn't have a register assigned
-Chosen rcx
+Chosen rdx
 ###### GRAPH COLOUR STACK ITEM
-#### 1 registers available
- - rsi
+#### 2 registers available
+ - rdx - rcx
 STACK ITEM
-printf Doesn't have a register assigned
-Chosen rbx
 ###### GRAPH COLOUR STACK ITEM
-#### 6 registers available
- - rdi - rsi - rdx - rcx - rbx - rax
+#### 2 registers available
+ - rdx - rcx
 STACK ITEM
-Vertice is precoloured 9 rsi
-Found removed register in 1
+Vertice is precoloured variable 9 5 0
+Vertice is precoloured register rsi
 9 register = rsi
 8 register = rdi
-talker register = rsi
-t1 register = rdx
+talker register = (null)
+t1 register = rsi
 value2: %d\n register = rdi
-printf register = rbx
-t3 register = rcx
+printf register = (null)
+t3 register = rdx
 ### END GRAPH COLOURING
 b
 looking up b
@@ -503,14 +504,14 @@ Variable 0: 3-b
 Found reference 3-b to b
 identifier b 0
 Forward link to 3-b NOT found
-0x55edc7ac3970
+0x55bb6a500970
 Links to 3-b
 - b
 Variable 1: 1-a 
 Found reference 1-a to a
 identifier a 0
 Forward link to 1-a NOT found
-0x55edc7ac3d00
+0x55bb6a500d00
 Links to 1-a
 - a
 Variable 2: 2-t0 
@@ -519,7 +520,7 @@ add (null) 0
  identifier a 0
  identifier b 0
 Forward link to 2-t0 NOT found
-0x55edc7ac40b0
+0x55bb6a5010b0
 Links to 2-t0
 - a
 Found reference 2-t0 to b
@@ -527,7 +528,7 @@ add (null) 0
  identifier a 0
  identifier b 0
 Forward link to 2-t0 found
-0x55edc7ac40b0
+0x55bb6a5010b0
 Links to 2-t0
 - a
 - b
@@ -538,7 +539,7 @@ return (null) 0
   identifier a 0
   identifier b 0
 Forward link to 0-t1 NOT found
-0x55edc7ac44e0
+0x55bb6a5014e0
 Links to 0-t1
 - t0
 FOUND EDGE WITH EDGE COUNT < 6 t1
@@ -580,4 +581,146 @@ add (null) 0
  identifier b 0
 t1 Doesn't have a register assigned
 Chosen rcx
-b
+b register = rdi
+a register = rsi
+t0 register = rdx
+t1 register = rcx
+### END GRAPH COLOURING
+Codegen for main
+generating code region for function talker 4096
+Generating reference
+Generating reference
+Generating add
+3 add bytes length
+Add instruction left is rsi
+Right instruction right is rdi
+my register is rdx
+3 operand move bytes length
+moving register right into destination registerMoving from rdi to rdx
+Generating return
+Moving from rdx to rax
+
+55 48 89 fa 48 1 f2 48 
+89 d0 5d c3 0 0 0 0 
+0 0 0 0 0 0 0 0 
+0 0 0 0 0 0 0 0 
+0 0 0 0 0 0 0 0 
+0 0 0 0 0 0 0 0 
+0 0 0 0 0 0 0 0 
+0 0 0 0 0 0 0 0 
+0 0 0 0 0 0 0 0 
+0 0 0 0 0 0 0 0 
+0 0 0 0 0 0 0 0 
+0 0 0 0 0 0 0 0 
+0 0 0 0 GENERATING 55
+Generating reference
+9 9 <- 9
+reference 9
+Register for identifier is 
+rsimov $9, %rsi
+48
+c7
+c6
+9
+0
+0
+0
+Generating reference
+8 8 <- 8
+reference 8
+Register for identifier is 
+rdimov $8, %rdi
+48
+c7
+c7
+8
+0
+0
+0
+Generating method call
+Resolving function talker
+Inspecting function talker
+talker
+Method call to function talker at 0x7f10eee45000
+8 0x55bb6a4efb80
+0x55bb6a4efb80 0x55bb6a502200 creating function id 94263430881792
+0x55bb68ab483f creating function stub 94263403300927
+Method call output needs to go to register rsi
+Moving from rax to rsi
+Generating reference
+Generating method call
+Resolving function printf
+Inspecting function talker
+printf
+Method call to function printf at 0x7f10eec5c740
+value2: %d\n 0x55bb6a4e1860
+0x55bb6a4e1860 0x55bb6a4e1860 relative pointer 94263430748256
+0x7f10eec5c740 0x7f10eec5c740 relative pointer 139710702143296
+Method call output needs to go to register rdx
+Moving from rax to rdx
+Main machine code
+
+55 48 c7 c6 9 0 0 0 
+48 c7 c7 8 0 0 0 49 
+bc 0 0 0 0 0 0 0 
+0 49 bb 3f 48 ab 68 bb 
+55 0 0 41 ff d3 48 89 
+c6 48 bf 60 18 4e 6a bb 
+55 0 0 49 bb 40 c7 c5 
+ee 10 7f 0 0 41 ff d3 
+48 89 c2 5d c3 0 0 0 
+0 0 0 0 0 0 0 0 
+0 0 0 0 0 0 0 0 
+0 0 0 0 0 0 0 0 
+0 0 0 0 
+Executing machine code at 0x7f10eee44000
+Compile stub C calling convention
+         rdi = 8
+         rsi = 9
+Calling compile of user function for stub 0
+Generating reference
+Generating reference
+Generating add
+3 add bytes length
+Add instruction left is rsi
+Right instruction right is rdi
+my register is rdx
+3 operand move bytes length
+moving register right into destination registerMoving from rdi to rdx
+Generating return
+Moving from rdx to rax
+Patching callsites
+Function talker compiled to 0x7f10eee45000 there are 1 callsites
+0
+Need to patch 0x7f10eee44000 27 with 0x7f10eee45000 0x7f10eee4401b
+SUCCESS Patching callsite to 27
+Lazy compilation talker machine code
+
+55 48 89 fa 48 1 f2 48 
+89 d0 5d c3 0 0 0 0 
+0 0 0 0 0 0 0 0 
+0 0 0 0 0 0 0 0 
+0 0 0 0 0 0 0 0 
+0 0 0 0 0 0 0 0 
+0 0 0 0 0 0 0 0 
+0 0 0 0 0 0 0 0 
+0 0 0 0 0 0 0 0 
+0 0 0 0 0 0 0 0 
+0 0 0 0 0 0 0 0 
+0 0 0 0 0 0 0 0 
+0 0 0 0 Main method again machine code
+
+55 48 c7 c6 9 0 0 0 
+48 c7 c7 8 0 0 0 49 
+bc 0 0 0 0 0 0 0 
+0 49 bb 0 50 e4 ee 10 
+7f 0 0 41 ff d3 48 89 
+c6 48 bf 60 18 4e 6a bb 
+55 0 0 49 bb 40 c7 c5 
+ee 10 7f 0 0 41 ff d3 
+48 89 c2 5d c3 0 0 0 
+0 0 0 0 0 0 0 0 
+0 0 0 0 0 0 0 0 
+0 0 0 0 0 0 0 0 
+0 0 0 0 Compiled function result is 17
+value2: 17\nc

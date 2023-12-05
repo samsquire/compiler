@@ -24,6 +24,7 @@ clean: $(binaries)
 
 $(programs_binaries): $(programs_c) regmove/regmove.c
 	gcc $(basename $@).c common.c regmove/regmove.c -o $(basename $@) -g -l:libpcre2-8.a -I pcre2-10.42/ -I.
+	objdump -dj .text -Matt,x86-64 $(basename $@) > $(basename $@)-text
 
 make: $(binaries) $(programs_binaries)
 

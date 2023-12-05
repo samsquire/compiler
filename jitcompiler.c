@@ -50,7 +50,7 @@ It is barebones and a toy.
 #include <sys/stat.h>
 #include "common.h"
 
-int compile_stub(int function_id);
+long compile_stub();
 
 struct hashmap_key {
   char key[1024];
@@ -1322,9 +1322,12 @@ int writecode(struct CodeGenContext * context, struct FunctionContext * function
                function_context->code[function_context->pc++] = method_bytes[i]; 
              } 
            }
+           
+            
+
          } else {
-           function_context->code[function_context->pc++] = 0x48; 
-           function_context->code[function_context->pc++] = 0xbf; 
+           function_context->code[function_context->pc++] = 0x49; 
+           function_context->code[function_context->pc++] = 0xbc; 
            char * start = function_context->code + function_context->pc; 
            uintptr_t * address = malloc(sizeof(uintptr_t) * 1);
             
@@ -1355,6 +1358,16 @@ int writecode(struct CodeGenContext * context, struct FunctionContext * function
            function_context->code[function_context->pc++] = 0xd3; 
 
          }
+         if (anf->assignment_pair->assignments[x].expression->chosen_register != NULL) {
+            printf("Method call output needs to go to register %s\n", anf->assignment_pair->assignments[x].expression->chosen_register);
+            int move_length = 3;
+            char * move_return_value = calloc(move_length, sizeof(char));
+            move_var("rax", anf->assignment_pair->assignments[x].expression->chosen_register, move_return_value); 
+            for (int n = 0 ; n < move_length; n++) {
+              function_context->code[function_context->pc++] = move_return_value[n]; 
+            }
+         }
+
          break;
       case RETURN:
          printf("Generating return\n");
@@ -1478,8 +1491,44 @@ int dump_machine_code(char * name, char * code) {
   }
 
 }
-int compile_stub(int function_id) {
-  printf("Calling compile of user function for stub %d\n", function_id);
+long compile_stub() {
+  long function_id;
+  asm("\t movq %%r12,%0" : "=r"(function_id));
+
+
+  long rax, rbx, rcx, rdx, rsi, rdi, r8, r9, r10, r11, r12, r13, r14, r15;
+  asm("movq %%rax,%0 \n\
+      movq %%rbx,%1 \n\
+      movq %%rcx,%2 \n\
+      movq %%rdx,%3 \n\
+      movq %%rsi,%4 \n\
+      movq %%rdi,%5 \n\
+      movq %%r8,%6 \n\
+      movq %%r9,%7 \n\
+      movq %%r10,%8 \n\
+      movq %%r11,%9 \n\
+      movq %%r12,%10 \n\
+      movq %%r13,%11 \n\
+      movq %%r14,%12 \n\
+      movq %%r15,%13":
+        "=r"(rax),
+        "=r"(rbx),
+        "=r"(rcx),
+        "=r"(rdx),
+        "=r"(rsi),
+        "=r"(rdi),
+        "=r"(r8),
+        "=r"(r9),
+        "=r"(r10),
+        "=r"(r11),
+        "=r"(r12),
+        "=r"(r13),
+        "=r"(r14),
+        "=r"(r15));
+  printf("Compile stub C calling convention\n \
+        rdi = %ld\n \
+        rsi = %ld\n", rdi, rsi);
+  printf("Calling compile of user function for stub %ld\n", function_id);
   struct Function * function = CODEGEN_CONTEXT->user_functions[function_id];    
   struct FunctionContext *function_context = function->context;
   function->context->pc = 0;
@@ -1517,8 +1566,35 @@ int compile_stub(int function_id) {
   fflush(fp);
   fclose(fp);
   int (*jmp_func)(void) = (void *) address;
-  jmp_func();
-  return 0;
+  asm("movq %0,%%rax \n\
+      movq %1,%%rbx \n\
+      movq %2,%%rcx \n\
+      movq %3,%%rdx \n\
+      movq %4,%%rsi \n\
+      movq %5,%%rdi \n\
+      movq %6,%%r8 \n\
+      movq %7,%%r9 \n\
+      movq %8,%%r10 \n\
+      movq %9,%%r11 \n\
+      movq %10,%%r12 \n\
+      movq %11,%%r13 \n\
+      movq %12,%%r14":
+        "+r"(rax),
+        "+r"(rbx),
+        "+r"(rcx),
+        "+r"(rdx),
+        "+r"(rsi),
+        "+r"(rdi),
+        "+r"(r8),
+        "+r"(r9),
+        "+r"(r10),
+        "+r"(r11),
+        "+r"(r12),
+        "+r"(r13),
+        "+r"(r14));
+  long result = jmp_func();
+  printf("Compiled function result is %ld\n", result);
+  return result;
 }
 
 int codegen(struct ANF *anfs) {
@@ -1597,28 +1673,28 @@ int codegen(struct ANF *anfs) {
 }
 
 int precolour_method_call(struct Expression *expression, char ** real_registers, int register_count) {
-  int current_register = 0;
-  // printf("Found expression type %d\n", expression->type);
-    for (int n = 0 ; n < expression->statements->statements; n++) {
-      for (int k = 0 ; k < expression->exps[n]->expression_length; k++) {
-        if (current_register >= register_count) {
-          printf("WARNING Need to spill\n");
-        }
-        switch (expression->exps[n]->expressions[k]->type) {
-          case METHOD_CALL:
-            printf("submethodcall\n");
-            precolour_method_call(expression->exps[n]->expressions[k], real_registers, register_count);
-          break;
-         case IDENTIFIER:
-          if (expression->exps[n]->expressions[k]->tag != IS_AST_METADATA) {
-            char * assigned_register = real_registers[current_register++];
-            expression->exps[n]->expressions[k]->chosen_register = assigned_register;
-            printf("Found expression in method call %d %s %s\n", expression->exps[n]->expressions[k]->type, expression->exps[n]->expressions[k]->stringvalue, assigned_register);
-          }
-          break;
-        }
+  int current_register = 0; // we need no longer skip rdi for it is used for function stub identifier since thats in r12
+                            // printf("Found expression type %d\n", expression->type);
+  for (int n = 0 ; n < expression->statements->statements; n++) {
+    for (int k = 0 ; k < expression->exps[n]->expression_length; k++) {
+      if (current_register >= register_count) {
+        printf("WARNING Need to spill\n");
       }
+      switch (expression->exps[n]->expressions[k]->type) {
+        case METHOD_CALL:
+          printf("submethodcall\n");
+          precolour_method_call(expression->exps[n]->expressions[k], real_registers, register_count);
+          break;
+      }
+      if (expression->exps[n]->expressions[k]->tag != IS_AST_METADATA) {
+        char * assigned_register = real_registers[current_register++];
+        expression->exps[n]->expressions[k]->chosen_register = assigned_register;
+        printf("Found expression in method call %d %s %s\n", expression->exps[n]->expressions[k]->type, expression->exps[n]->expressions[k]->stringvalue, assigned_register);
+        break;
+      }
+
     }
+  }
 }
 
 int precolour_anf(struct NormalForm *anfs, char ** real_registers, int register_count) {
@@ -2134,6 +2210,7 @@ int do_graph_colouring(struct NormalForm *anfs, struct AssignmentPair *assignmen
     printf("STACK ITEM\n");
     dump_expressions(0, item->from->expression->exps[0]);
     if (item->from->chosen_register == NULL) {
+      if (item->from->expression->tag != IS_AST_METADATA) {
       printf("%s Doesn't have a register assigned\n", item->from->variable);
       available_len--;
       char * chosen_register = available[available_index];
@@ -2141,9 +2218,12 @@ int do_graph_colouring(struct NormalForm *anfs, struct AssignmentPair *assignmen
       item->from->chosen_register = chosen_register;
       item->from->expression->chosen_register = chosen_register;
       printf("Chosen %s\n", chosen_register);
-       
+      } 
     } else {
-      printf("Vertice is precoloured %s %s\n", item->from->variable, item->from->chosen_register);
+      int type = item->from->expression->type;
+      int tag = item->from->expression->tag;
+      printf("Vertice is precoloured variable %s %d %d\n", item->from->variable, type, tag);
+      printf("Vertice is precoloured register %s\n", item->from->chosen_register);
       int removed_pos = -1;
       available_len--; 
       // item->from->expression->chosen_register = item->from->chosen_register;
