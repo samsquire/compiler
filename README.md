@@ -2,9 +2,10 @@
 
 This repository is where I work on compiler development.
 
-I have two compilers:
+I have three separate compiler compilers:
 
-* an toy amd64 compiler written in Python
+* [a toy amd64 expression compiler written in Python in main.py](https://github.com/samsquire/compiler/blob/main/main.py) this outputs assembly that is assembled with GNU Assembler
+* [a register allocator with graph colouring and precolouring written Python](https://github.com/samsquire/register-allocation2)
 * an amd64 JIT compiler written in C that does lazy code generation [Jump to section](https://github.com/samsquire/compiler/blob/main/README.md#jit-compiler-written-in-c)
 
 Scroll down.
@@ -233,6 +234,8 @@ Addition instruction is implemented but parameter passing to functions is not im
 
 This uses [JIT compilation code jit.c](https://gist.github.com/martinjacobd/3ee56f3c7b7ce621034ec3ecbc8e13f1) from Martin Jacob https://gist.github.com/martinjacobd
 
+
+
 # running instructions
 
 * run make
@@ -280,4 +283,7 @@ Then rewrite the compiled data buffer for that function with the compiled machin
 
 # Credits
 
-* playX from r/programminglanguages discord in backend
+* playX from r/programminglanguages discord in backend for telling me about `call *%reg` for indirect calls
+* chc4 from r/programminglanguages discord for various support and help with graph precolouring
+* avery from r/programminglanguages discord for telling me about 3-operand additions
+* elucent from r/programminglanguages discord for telling me how to encode amd64 instructions 
