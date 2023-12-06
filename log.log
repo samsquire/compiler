@@ -8,7 +8,7 @@ function talker(int a, int b) {
   return a + b;
 }
 printf("value2: %d\n", talker(8, 9));
-FIRST INTO 0x55bb6a4dc8a0
+FIRST INTO 0x5605b55be8a0
 HASH TABLE 200
 case 6953778704349: /* member */ 
 break;
@@ -87,22 +87,22 @@ there are 1 parameters
 commacheck CLOSE TAG
 loopparameterlist CLOSE TAG
 functioncurlyopencheck Skipping whitespace
-function parse INTO 0x55bb6a4dda20functionbodyitem Skipping whitespace
+function parse INTO 0x5605b55bfa20functionbodyitem Skipping whitespace
 functionbodyitem Skipping whitespace
 functionbodyitem Skipping whitespace
 
 -1 rc is
 Hash for token return is 6953974653989
 functionparse Return statement
-0x55bb6a4dda20
+0x5605b55bfa20
 functionbodyitem Skipping whitespace
 
 -1 rc is
 Hash for token a is 177670
 functionparse parseexpression Is an identifier a
-identifier expression 0x55bb6a4dedf0
-statements 0x55bb6a4de210
-expression location 0 0x55bb6a4dea60
+identifier expression 0x5605b55c0df0
+statements 0x5605b55c0210
+expression location 0 0x5605b55c0a60
  identifier a 0
 functionbodyitem Skipping whitespace
 Hash for token add is 193486030
@@ -111,9 +111,9 @@ functionbodyitem Skipping whitespace
 -1 rc is
 Hash for token b is 177671
 functionparse parseexpression Is an identifier b
-identifier expression 0x55bb6a4e02e0
-statements 0x55bb6a4dfaf0
-expression location 1 0x55bb6a4dff50
+identifier expression 0x5605b55c22e0
+statements 0x5605b55c1af0
+expression location 1 0x5605b55c1f50
  identifier a 0
  identifier b 0
 functionbodyitem CLOSE expression
@@ -126,12 +126,12 @@ parsebegin Skipping whitespace
 -1 rc is
 printffunctionparse Funcbody Is an identifier printf
 functionparse New position is 0
-identifier INTO 0x55bb6a4dc8a0
+identifier INTO 0x5605b55be8a0
 Hash for token open is 6385555319
 open bracket
 OWNER 0
  identifier printf 0
-expression location 1 0x55bb6a4e0b90
+expression location 1 0x5605b55c2b90
  method call method 0
   identifier printf 0
 Parsing subexpression
@@ -143,9 +143,9 @@ inside a quote
 -1 rc is
 Hash for token value2: %d\n is -2533170842880017663
 exprparse parseexpression Is an identifier value2: %d\n
-identifier expression 0x55bb6a4e1e00
-statements 0x55bb6a4e1600
-expression location 1 0x55bb6a4e1a70
+identifier expression 0x5605b55c3e00
+statements 0x5605b55c3600
+expression location 1 0x5605b55c3a70
  identifier printf 0
  identifier value2: %d\n 0
 Hash for token comma is 210709067314
@@ -155,15 +155,15 @@ functionbodyitem Skipping whitespace
 -1 rc is
 Hash for token talker is 6954047882280
 exprparse parseexpression Is an identifier talker
-identifier expression 0x55bb6a4e2710
-statements 0x55bb6a4e2190
-expression location 0 0x55bb6a4e26b0
+identifier expression 0x5605b55c4710
+statements 0x5605b55c4190
+expression location 0 0x5605b55c46b0
  identifier talker 0
 Hash for token open is 6385555319
 open bracket
 OWNER 0
  identifier talker 0
-expression location 1 0x55bb6a4e26b0
+expression location 1 0x5605b55c46b0
  method call method 0
   identifier talker 0
 Parsing subexpression
@@ -171,9 +171,9 @@ Parsing subexpression
 -1 rc is
 Hash for token 8 is 177629
 exprparse parseexpression Is an identifier 8
-identifier expression 0x55bb6a4eaf00
-statements 0x55bb6a4e2790
-expression location 1 0x55bb6a4eab70
+identifier expression 0x5605b55ccf00
+statements 0x5605b55c4790
+expression location 1 0x5605b55ccb70
  identifier talker 0
  identifier 8 8
 Hash for token comma is 210709067314
@@ -183,9 +183,9 @@ functionbodyitem Skipping whitespace
 -1 rc is
 Hash for token 9 is 177630
 exprparse parseexpression Is an identifier 9
-identifier expression 0x55bb6a4ebaa0
-statements 0x55bb6a4eb290
-expression location 0 0x55bb6a4eb710
+identifier expression 0x5605b55cdaa0
+statements 0x5605b55cd290
+expression location 0 0x5605b55cd710
  identifier 9 9
 functionbodyitem CLOSE TAG
 functionbodyitem CLOSE TAG
@@ -238,14 +238,14 @@ submethodcall
 Found expression in method call 5 8 rdi
 Found expression in method call 5 9 rsi
 Found expression in method call 3 method rsi
-FOUND PRECOLOURED REGISTER 0x55bb68b1d549
+FOUND PRECOLOURED REGISTER 0x5605b488e549
 Created a identifier reference
-FOUND PRECOLOURED REGISTER 0x55bb68b1d54d
+FOUND PRECOLOURED REGISTER 0x5605b488e54d
 Created a identifier reference
 Created a identifier reference
-FOUND PRECOLOURED REGISTER 0x55bb68b1d549
+FOUND PRECOLOURED REGISTER 0x5605b488e549
 Method call Assigning 8 to variable t0
-FOUND PRECOLOURED REGISTER 0x55bb68b1d54d
+FOUND PRECOLOURED REGISTER 0x5605b488e54d
 Created a identifier reference
 Created a identifier reference
 Method call Assigning 5 to variable t2
@@ -267,8 +267,8 @@ t1 <- t0 (ret)
 
 
 from /proc/self/maps:
-55bb6a4db000-55bb6a51d000 rw-p 00000000 00:00 0                          [heap]
-heap start is 55bb6a4db000
+5605b55bd000-5605b55ff000 rw-p 00000000 00:00 0                          [heap]
+heap start is 5605b55bd000
 9
 looking up 9
 key doesn't exist
@@ -314,21 +314,21 @@ Variable 0: 10-9
 Found reference 10-9 to 9
 identifier 9 9
 Forward link to 10-9 NOT found
-0x55bb6a4fdab0
+0x5605b55dfab0
 Links to 10-9
 - 9
 Variable 1: 9-8 
 Found reference 9-8 to 8
 identifier 8 8
 Forward link to 9-8 NOT found
-0x55bb6a4fde40
+0x5605b55dfe40
 Links to 9-8
 - 8
 Variable 2: 7-talker 
 Found reference 7-talker to talker
 identifier talker 0
 Forward link to 7-talker NOT found
-0x55bb6a4fe1d0
+0x5605b55e01d0
 Links to 7-talker
 - talker
 Variable 3: 8-t0 
@@ -338,7 +338,7 @@ method call method 0
  identifier 8 8
  identifier 9 9
 Forward link to 8-t0 NOT found
-0x55bb6a4fe5a0
+0x5605b55e05a0
 Links to 8-t0
 - talker
 Found reference 8-t0 to 8
@@ -347,7 +347,7 @@ method call method 0
  identifier 8 8
  identifier 9 9
 Forward link to 8-t0 found
-0x55bb6a4fe5a0
+0x5605b55e05a0
 Links to 8-t0
 - talker
 - 8
@@ -357,7 +357,7 @@ method call method 0
  identifier 8 8
  identifier 9 9
 Forward link to 8-t0 found
-0x55bb6a4fe5a0
+0x5605b55e05a0
 Links to 8-t0
 - talker
 - 8
@@ -366,14 +366,14 @@ Variable 4: 6-value2: %d\n
 Found reference 6-value2: %d\n to value2: %d\n
 identifier value2: %d\n 0
 Forward link to 6-value2: %d\n NOT found
-0x55bb6a4fea30
+0x5605b55e0a30
 Links to 6-value2: %d\n
 - value2: %d\n
 Variable 5: 4-printf 
 Found reference 4-printf to printf
 identifier printf 0
 Forward link to 4-printf NOT found
-0x55bb6a4fedc0
+0x5605b55e0dc0
 Links to 4-printf
 - printf
 Variable 6: 5-t2 
@@ -386,7 +386,7 @@ method call method 0
   identifier 8 8
   identifier 9 9
 Forward link to 5-t2 NOT found
-0x55bb6a4ff1d0
+0x5605b55e11d0
 Links to 5-t2
 - printf
 Found reference 5-t2 to value2: %d\n
@@ -398,7 +398,7 @@ method call method 0
   identifier 8 8
   identifier 9 9
 Forward link to 5-t2 found
-0x55bb6a4ff1d0
+0x5605b55e11d0
 Links to 5-t2
 - printf
 - value2: %d\n
@@ -411,7 +411,7 @@ method call method 0
   identifier 8 8
   identifier 9 9
 Forward link to 5-t2 found
-0x55bb6a4ff1d0
+0x5605b55e11d0
 Links to 5-t2
 - printf
 - value2: %d\n
@@ -504,14 +504,14 @@ Variable 0: 3-b
 Found reference 3-b to b
 identifier b 0
 Forward link to 3-b NOT found
-0x55bb6a500970
+0x5605b55e2970
 Links to 3-b
 - b
 Variable 1: 1-a 
 Found reference 1-a to a
 identifier a 0
 Forward link to 1-a NOT found
-0x55bb6a500d00
+0x5605b55e2d00
 Links to 1-a
 - a
 Variable 2: 2-t0 
@@ -520,7 +520,7 @@ add (null) 0
  identifier a 0
  identifier b 0
 Forward link to 2-t0 NOT found
-0x55bb6a5010b0
+0x5605b55e30b0
 Links to 2-t0
 - a
 Found reference 2-t0 to b
@@ -528,7 +528,7 @@ add (null) 0
  identifier a 0
  identifier b 0
 Forward link to 2-t0 found
-0x55bb6a5010b0
+0x5605b55e30b0
 Links to 2-t0
 - a
 - b
@@ -539,7 +539,7 @@ return (null) 0
   identifier a 0
   identifier b 0
 Forward link to 0-t1 NOT found
-0x55bb6a5014e0
+0x5605b55e34e0
 Links to 0-t1
 - t0
 FOUND EDGE WITH EDGE COUNT < 6 t1
@@ -641,10 +641,10 @@ Generating method call
 Resolving function talker
 Inspecting function talker
 talker
-Method call to function talker at 0x7f10eee45000
-8 0x55bb6a4efb80
-0x55bb6a4efb80 0x55bb6a502200 creating function id 94263430881792
-0x55bb68ab483f creating function stub 94263403300927
+Method call to function talker at 0x7fdc8a9d0000
+8 0x5605b55d1b80
+0x5605b55d1b80 0x5605b55e4200 creating function id 94582517678592
+0x5605b482583f creating function stub 94582503266367
 Method call output needs to go to register rsi
 Moving from rax to rsi
 Generating reference
@@ -652,10 +652,10 @@ Generating method call
 Resolving function printf
 Inspecting function talker
 printf
-Method call to function printf at 0x7f10eec5c740
-value2: %d\n 0x55bb6a4e1860
-0x55bb6a4e1860 0x55bb6a4e1860 relative pointer 94263430748256
-0x7f10eec5c740 0x7f10eec5c740 relative pointer 139710702143296
+Method call to function printf at 0x7fdc8a65c740
+value2: %d\n 0x5605b55c3860
+0x5605b55c3860 0x5605b55c3860 relative pointer 94582517545056
+0x7fdc8a65c740 0x7fdc8a65c740 relative pointer 140585191458624
 Method call output needs to go to register rdx
 Moving from rax to rdx
 Main machine code
@@ -663,17 +663,17 @@ Main machine code
 55 48 c7 c6 9 0 0 0 
 48 c7 c7 8 0 0 0 49 
 bc 0 0 0 0 0 0 0 
-0 49 bb 3f 48 ab 68 bb 
-55 0 0 41 ff d3 48 89 
-c6 48 bf 60 18 4e 6a bb 
-55 0 0 49 bb 40 c7 c5 
-ee 10 7f 0 0 41 ff d3 
+0 49 bb 3f 58 82 b4 5 
+56 0 0 41 ff d3 48 89 
+c6 48 bf 60 38 5c b5 5 
+56 0 0 49 bb 40 c7 65 
+8a dc 7f 0 0 41 ff d3 
 48 89 c2 5d c3 0 0 0 
 0 0 0 0 0 0 0 0 
 0 0 0 0 0 0 0 0 
 0 0 0 0 0 0 0 0 
 0 0 0 0 
-Executing machine code at 0x7f10eee44000
+Executing machine code at 0x7fdc8a9cf000
 Compile stub C calling convention
          rdi = 8
          rsi = 9
@@ -690,9 +690,9 @@ moving register right into destination registerMoving from rdi to rdx
 Generating return
 Moving from rdx to rax
 Patching callsites
-Function talker compiled to 0x7f10eee45000 there are 1 callsites
+Function talker compiled to 0x7fdc8a9d0000 there are 1 callsites
 0
-Need to patch 0x7f10eee44000 27 with 0x7f10eee45000 0x7f10eee4401b
+Need to patch 0x7fdc8a9cf000 27 with 0x7fdc8a9d0000 0x7fdc8a9cf01b
 SUCCESS Patching callsite to 27
 Lazy compilation talker machine code
 
@@ -713,11 +713,11 @@ Lazy compilation talker machine code
 55 48 c7 c6 9 0 0 0 
 48 c7 c7 8 0 0 0 49 
 bc 0 0 0 0 0 0 0 
-0 49 bb 0 50 e4 ee 10 
+0 49 bb 0 0 9d 8a dc 
 7f 0 0 41 ff d3 48 89 
-c6 48 bf 60 18 4e 6a bb 
-55 0 0 49 bb 40 c7 c5 
-ee 10 7f 0 0 41 ff d3 
+c6 48 bf 60 38 5c b5 5 
+56 0 0 49 bb 40 c7 65 
+8a dc 7f 0 0 41 ff d3 
 48 89 c2 5d c3 0 0 0 
 0 0 0 0 0 0 0 0 
 0 0 0 0 0 0 0 0 
