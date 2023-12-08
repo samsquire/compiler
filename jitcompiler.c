@@ -626,7 +626,7 @@ int subsume(struct ExpressionSource **statements, struct StatementSource *statem
       _newexps->expression_length = statements[statementsource->statements - 1]->expression_length;
       _newexps->current_into = statements[statementsource->statements - 1]->current_into;
 
-      struct Expression * _add = malloc(sizeof(struct Expression));
+      struct Expression * _add = calloc(1, sizeof(struct Expression));
       _add->id = parse_result->current_id++;
       _add->type = type;
       _add->exps = _newstatements2;
@@ -675,7 +675,7 @@ multiply 7572685654880005
         struct Expression * _exprs2 = calloc(1, sizeof(struct Expression));
         struct StatementSource * _newstatementsource = calloc(1, sizeof(struct StatementSource));
         struct StatementSource * _newstatementsource2 = calloc(1, sizeof(struct StatementSource));
-        struct Expression * _return = malloc(sizeof(struct Expression));
+        struct Expression * _return = calloc(1, sizeof(struct Expression));
         printf("%p\n", statements[statementsource->statements - 1]->expressions);
         statements[statementsource->statements - 1]->expressions[statements[statementsource->statements - 1]->expression_length++] = _return; 
         statementsource->statements++;
@@ -712,7 +712,7 @@ multiply 7572685654880005
         _newexps->expression_length = statements[statementsource->statements - 1]->expression_length;
         _newexps->current_into = statements[statementsource->statements - 1]->current_into;
 
-        struct Expression * _add = malloc(sizeof(struct Expression));
+        struct Expression * _add = calloc(1, sizeof(struct Expression));
         _add->id = parse_result->current_id++;
         _add->type = ADD;
         _add->symbol = "+";
@@ -742,7 +742,7 @@ multiply 7572685654880005
         newexps->expression_length = statements[statementsource->statements - 1]->expression_length;
         newexps->current_into = statements[statementsource->statements - 1]->current_into;
 
-        struct Expression * member = malloc(sizeof(struct Expression));
+        struct Expression * member = calloc(1, sizeof(struct Expression));
         member->id = parse_result->current_id++;
         member->type = MEMBER_ACCESS;
         member->symbol = ".";
@@ -791,7 +791,7 @@ multiply 7572685654880005
         struct ExpressionSource * expression_exps = calloc(1, sizeof(struct ExpressionSource)); 
         struct StatementSource * newstatementsource2 = malloc(sizeof(struct StatementSource));
         // struct Expression ** expressions = calloc(100, sizeof(struct Expression*)); 
-        struct Expression * method_call = malloc(sizeof(struct Expression));
+        struct Expression * method_call = calloc(1, sizeof(struct Expression));
         owner[owner_size - 1] = method_call;
         // statements[statementsource->statements - 1]->expression_length = 1;
         method_call->id = parse_result->current_id++;
@@ -845,7 +845,7 @@ multiply 7572685654880005
       break;
       default:  // identifier 
         printf("%s parseexpression Is an identifier %s\n", caller, token);
-        struct Expression * identifier = malloc(sizeof(struct Expression));
+        struct Expression * identifier = calloc(1, sizeof(struct Expression));
         identifier->type = IDENTIFIER;
         identifier->stringvalue = token;
         identifier->token_type = parse_result->token_type;
@@ -970,7 +970,7 @@ struct ParseResult * continue_parse(
       break;
     default: // case identifier
       printf("%s Funcbody Is an identifier %s\n", caller, token);
-      struct Expression * identifier = malloc(sizeof(struct Expression));
+      struct Expression * identifier = calloc(1, sizeof(struct Expression));
       struct ExpressionSource ** newstatements = malloc(sizeof(struct ExpressionSource*));
       struct ExpressionSource * identifierexps = malloc(sizeof(struct ExpressionSource));
       struct StatementSource * _newstatementsource = malloc(sizeof(struct StatementSource));
@@ -2223,10 +2223,10 @@ int do_graph_colouring(struct NormalForm *anfs, struct AssignmentPair *assignmen
       int type = item->from->expression->type;
       int tag = item->from->expression->tag;
       printf("Vertice is precoloured variable %s %d %d\n", item->from->variable, type, tag);
-      printf("Vertice is precoloured register %s\n", item->from->chosen_register);
+      printf("Vertice is precoloured register %p\n", item->from->chosen_register);
+      // item->from->expression->chosen_register = item->from->chosen_register;
       int removed_pos = -1;
       available_len--; 
-      // item->from->expression->chosen_register = item->from->chosen_register;
       for (int x = 0 ; x < available_len; x++) {
         if (strcmp(item->from->chosen_register, available[x]) == 0) {
           printf("Found removed register in %d\n", x);
