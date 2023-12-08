@@ -228,13 +228,21 @@ instruction 6 func println falls in range of Hello world %d
 
 # JIT compiler written in C
 
-Lazy compilation works.
+This is a simple JIT compiler. The code should be simple readable, if a little dense at times based on my coding style.
 
-Addition instruction is implemented but parameter passing to functions is not implemented yet.
+I use no pointer arithmetic or tight C style looping.
+
+## Features:
+
+* Precolouring of method parameters
+* C calling convention, amd64 SySV calling convention (rdi, rsi, rcx, rdx) with `r11` and `r12` reserved by the JIT compiler.
+* Can call C's printf function.
+* Graph colouring of expressions.
+* Simple register to register movements.
+* `+` (addition) operator.
+* Lazy compilation works and callsite patching.
 
 This uses [JIT compilation code jit.c](https://gist.github.com/martinjacobd/3ee56f3c7b7ce621034ec3ecbc8e13f1) from Martin Jacob https://gist.github.com/martinjacobd
-
-
 
 # running instructions
 
@@ -246,8 +254,6 @@ function talker(int a, int b) {
 printf("value: %d\n", 1 + talker(6, 7));
 printf("value2: %d\n", talker(8, 9));
 ```
-
-Don't expect these functions to return correct answers, just that lazy compilation is working.
 
 * try ./jitcompiler program2.lang
 * try ./jitcompiler function_only.lang
