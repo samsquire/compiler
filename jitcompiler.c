@@ -1360,11 +1360,13 @@ int writecode(struct CodeGenContext * context, struct FunctionContext * function
          }
          if (anf->assignment_pair->assignments[x].expression->chosen_register != NULL) {
             printf("Method call output needs to go to register %s\n", anf->assignment_pair->assignments[x].expression->chosen_register);
-            int move_length = 3;
-            char * move_return_value = calloc(move_length, sizeof(char));
-            move_var("rax", anf->assignment_pair->assignments[x].expression->chosen_register, move_return_value); 
-            for (int n = 0 ; n < move_length; n++) {
-              function_context->code[function_context->pc++] = move_return_value[n]; 
+            if (strcmp("rax", anf->assignment_pair->assignments[x].expression->chosen_register) != 0) {
+              int move_length = 3;
+              char * move_return_value = calloc(move_length, sizeof(char));
+              move_var("rax", anf->assignment_pair->assignments[x].expression->chosen_register, move_return_value); 
+              for (int n = 0 ; n < move_length; n++) {
+                function_context->code[function_context->pc++] = move_return_value[n]; 
+              }
             }
          }
 
@@ -2191,17 +2193,21 @@ int do_graph_colouring(struct NormalForm *anfs, struct AssignmentPair *assignmen
   printf("Register colouring starting with %d items\n", stack_index);
   while (stack_index > 0) {
     printf("###### GRAPH COLOUR STACK ITEM\n");
-    if (available_len == 0) {
+    if (available[0] == NULL) {
       for (int x = 0 ; x < register_count ; x++) {
         available[x] = real_registers[x];
       }
-      available_len = register_count;
       available_index = 0;
     } 
-    printf("#### %d registers available\n", available_len);
-    for (int x = 0 ; x < available_len; x++) {
-      printf(" - %s", available[x]);
+    int available_len = register_count;
+    for (int x = 0 ; x < register_count; x++) {
+      if (available[x] == NULL) {
+        available_len--;
+      } else {
+        printf(" - %s", available[x]);
+      }
     } 
+    printf("#### %d registers available\n", available_len);
     printf("\n");
 
     stack_index--; 
@@ -2212,12 +2218,27 @@ int do_graph_colouring(struct NormalForm *anfs, struct AssignmentPair *assignmen
     if (item->from->chosen_register == NULL) {
       if (item->from->expression->tag != IS_AST_METADATA) {
       printf("%s Doesn't have a register assigned\n", item->from->variable);
-      available_len--;
+      int removed_pos = 0;
       char * chosen_register = available[available_index];
-      available_index++;
+      // available_index++;
       item->from->chosen_register = chosen_register;
       item->from->expression->chosen_register = chosen_register;
       printf("Chosen %s\n", chosen_register);
+      for (int x = 0 ; x < register_count; x++) {
+        if (available[x] != NULL) {
+          if (strcmp(chosen_register, available[x]) == 0) {
+            printf("Found removed register in %d\n", x);
+            removed_pos = x;
+          }
+        }
+      } 
+      if (removed_pos != -1) {
+        for (int x = removed_pos ; x < register_count - 1; x++) {
+          available[x] = available[x + 1]; 
+        }
+        available[register_count - 1] = NULL;
+      }
+
       } 
     } else {
       int type = item->from->expression->type;
@@ -2226,18 +2247,19 @@ int do_graph_colouring(struct NormalForm *anfs, struct AssignmentPair *assignmen
       printf("Vertice is precoloured register %p\n", item->from->chosen_register);
       // item->from->expression->chosen_register = item->from->chosen_register;
       int removed_pos = -1;
-      available_len--; 
       for (int x = 0 ; x < available_len; x++) {
-        if (strcmp(item->from->chosen_register, available[x]) == 0) {
-          printf("Found removed register in %d\n", x);
-          removed_pos = x;
+        if (available[x] != NULL) {
+          if (strcmp(item->from->chosen_register, available[x]) == 0) {
+            printf("Found removed register in %d\n", x);
+            removed_pos = x;
+          }
         }
       } 
       if (removed_pos != -1) {
         for (int x = removed_pos ; x < register_count - 1; x++) {
           available[x] = available[x + 1]; 
         }
-        available[available_len] = 0;
+        available[register_count - 1] = NULL;
 
       }
     }  
@@ -2245,7 +2267,7 @@ int do_graph_colouring(struct NormalForm *anfs, struct AssignmentPair *assignmen
 
 
   for (int x = 0 ; x < assignment_pair->assignment_length; x++) {
-    printf("%s register = %s\n", assignment_pair->assignments[x].variable, assignment_pair->assignments[x].chosen_register);
+    printf("%s register = %s %s\n", assignment_pair->assignments[x].variable, assignment_pair->assignments[x].chosen_register, assignment_pair->assignments[x].text);
   }
 
   printf("### END GRAPH COLOURING\n");
