@@ -4,6 +4,13 @@ with JIT code from Jacob Martin (https://gist.github.com/martinjacobd)
 
 This C program executes a language that is superficially similar to Javascript.
 It is barebones and a toy.
+
+Copyright (c) 2023 Samuel Michael Squire
+https://samsquire.com/
+
+It is under MIT licence.
+You can email me at sam@samsquire.com
+
 */
 /*
  * Copyright (c) 2023 Jacob Martin
