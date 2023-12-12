@@ -4,9 +4,9 @@ This repository is where I work on compiler development.
 
 I have three separate compiler compilers:
 
-* [a toy amd64 expression compiler written in Python in main.py](https://github.com/samsquire/compiler/blob/main/main.py) this outputs assembly that is assembled with GNU Assembler
-* [a register allocator with graph colouring and precolouring written Python](https://github.com/samsquire/register-allocation2)
-* an amd64 JIT compiler written in C that does lazy code generation [Jump to section](https://github.com/samsquire/compiler/blob/main/README.md#jit-compiler-written-in-c)
+* [a toy amd64 expression compiler written in Python in main.py](https://github.com/samsquire/compiler/blob/main/main.py) this outputs assembly that is assembled with GNU Assembler. It is Zero Clause BSD Licenced.
+* [a register allocator with graph colouring and precolouring written Python](https://github.com/samsquire/register-allocation2) It is zero clause BSD licenced.
+* an amd64 JIT compiler written in C that does lazy code generation [Jump to section](https://github.com/samsquire/compiler/blob/main/README.md#jit-compiler-written-in-c) It is MIT licenced.
 
 Scroll down.
 
