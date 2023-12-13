@@ -10,7 +10,7 @@ I have three separate compiler compilers:
 
 Scroll down.
 
-# amd64 cheatsheet
+# amd64 cheatsheet (todo)
 
 | Description | Opcode                                                       |
 | ----------- | ------------------------------------------------------------ |
@@ -225,6 +225,10 @@ eax is now free
 instruction 5 func println falls in range of Value is %d
 instruction 6 func println falls in range of Hello world %d
 ```
+
+## Todo:
+
+* Create assignments for `references` and `assigns` so they are used by register allocation.
 
 # JIT compiler written in C
 
