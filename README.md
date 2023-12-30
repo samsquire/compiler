@@ -2,11 +2,13 @@
 
 This repository is where I work on compiler development.
 
-I have three separate compiler compilers:
+I have five separate compiler/compilers:
 
 * [a toy amd64 expression compiler written in Python in main.py](https://github.com/samsquire/compiler/blob/main/main.py) this outputs assembly that is assembled with GNU Assembler. It is Zero Clause BSD Licenced.
 * [a register allocator with graph colouring and precolouring written Python](https://github.com/samsquire/register-allocation2) It is zero clause BSD licenced.
 * an amd64 JIT compiler written in C that does lazy code generation [Jump to section](https://github.com/samsquire/compiler/blob/main/README.md#jit-compiler-written-in-c) It is MIT licenced.
+* [statelines parser 2](https://github.com/samsquire/operating-system-simulation) 
+* [statelines interpreter and compiler v1](https://github.com/samsquire/multiversion-concurrency-control) 
 
 Scroll down.
 
@@ -245,6 +247,7 @@ I use no pointer arithmetic or tight C style looping.
 * Simple register to register movements.
 * `+` (addition) operator.
 * Lazy compilation works and callsite patching.
+* Uses "A Normal Form"
 
 This uses [JIT compilation code jit.c](https://gist.github.com/martinjacobd/3ee56f3c7b7ce621034ec3ecbc8e13f1) from Martin Jacob https://gist.github.com/martinjacobd
 
